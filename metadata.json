@@ -1,0 +1,6 @@
+{
+  "name": "MellClicker",
+  "description": "Native iOS clicker game MellClicker with SwiftUI architecture, sound effects, shop upgrades, and iOS HIG styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
