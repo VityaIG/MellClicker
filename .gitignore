@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs & cache
+dist
+build
+DerivedData
+.vite
+
+# Xcode local user data (keep shared schemes in xcshareddata)
+xcuserdata/
+*.xcuserstate
+
+# System
+.DS_Store
+*.log

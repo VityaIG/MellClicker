@@ -10,33 +10,46 @@ on:
 jobs:
   build-ipa:
     name: Build iOS App (.ipa)
-    runs-on: macos-latest
+    runs-on: macos-14
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Xcode
+      - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          if [ -d "/Applications/Xcode_15.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          else
+            sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          fi
           xcodebuild -version
 
-      - name: Build and Archive iOS App
+      - name: Build iOS App
         run: |
-          xcodebuild -project MellClicker.xcodeproj \
-                     -scheme MellClicker \
-                     -sdk iphoneos \
-                     -configuration Release \
-                     -archivePath build/MellClicker.xcarchive \
-                     CODE_SIGNING_ALLOWED=NO \
-                     CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGN_IDENTITY="" \
-                     archive
+          xcodebuild clean build \
+            -project MellClicker.xcodeproj \
+            -scheme MellClicker \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Package App into .ipa
         run: |
           mkdir -p build/Payload
-          cp -R build/MellClicker.xcarchive/Products/Applications/MellClicker.app build/Payload/
+          APP_PATH=$(find build/DerivedData/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1 -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: MellClicker.app not found!"
+            exit 1
+          fi
+          echo "Found app at: $APP_PATH"
+          cp -R "$APP_PATH" build/Payload/
           cd build
           zip -r MellClicker.ipa Payload
           echo "Successfully created MellClicker.ipa"
@@ -46,3 +59,4 @@ jobs:
         with:
           name: MellClicker-IPA
           path: build/MellClicker.ipa
+
