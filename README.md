@@ -1,68 +1,70 @@
-# MellClicker — Native iOS Clicker Game (SwiftUI + MVVM)
+# MellClicker — Нативная iOS игра-кликер (SwiftUI + MVVM)
 
-A complete, production-ready native iOS clicker game built with **SwiftUI**, **AVFoundation**, and clean **MVVM Architecture** according to Apple Human Interface Guidelines (HIG).
+Релиз 1.0.0. Полнофункциональная нативная игра-кликер для iOS, разработанная на **SwiftUI**, **AVFoundation** с применением чистой архитектуры **MVVM** в строгом соответствии с рекомендациями Apple Human Interface Guidelines (HIG).
 
 ---
 
-## 📂 Project Architecture
+## Архитектура проекта
 
-The repository is organized as a standard Xcode project ready to open and run immediately:
+Репозиторий оформлен в виде стандартного проекта Xcode, готового к сборке и запуску:
 
 ```text
 .
 ├── MellClicker.xcodeproj
-│   └── project.pbxproj             # Complete Xcode project specification
+│   └── project.pbxproj             # Полная спецификация проекта Xcode
 │
 └── MellClicker
     ├── App
-    │   ├── MellClickerApp.swift    # @main app entry point & HIG appearance setup
-    │   └── ContentView.swift       # Native TabView coordinator (Кликер, Магазин, Настройки)
+    │   ├── MellClickerApp.swift    # Точка входа @main и настройка оформления HIG
+    │   └── ContentView.swift       # Главный координатор TabView (Кликер, Магазин, Настройки)
     │
     ├── ViewModels
-    │   └── GameViewModel.swift     # Core reactive state, formulas, timer, and UserDefaults persistence
+    │   └── GameViewModel.swift     # Реактивное состояние, формулы, таймер и сохранение в UserDefaults
     │
     ├── Services
-    │   ├── AudioManager.swift      # Low-latency concurrent AVFoundation audio engine with player pooling
-    │   └── HapticManager.swift     # Native iOS Taptic Engine feedback coordinator
+    │   ├── AudioManager.swift      # Высокопроизводительный аудиодвижок AVFoundation с пулом плееров
+    │   └── HapticManager.swift     # Координатор тактильного отклика Taptic Engine
     │
     ├── Views
-    │   ├── ClickerView.swift       # Tap interaction, spring bounce animation, and floating particles
-    │   ├── ShopView.swift          # Upgrades list («Чекушка» and «Чекунец») with native List & Sections
-    │   └── SettingsView.swift      # Audio/haptic toggles, reset confirmation alert, and Telegram link
+    │   ├── ClickerView.swift       # Экран кликера, пружинная анимация и всплывающие числа
+    │   ├── ShopView.swift          # Экран улучшений («Чекушка» и «Чекунец») на нативных List и Section
+    │   └── SettingsView.swift      # Переключатели звука/вибрации, сброс прогресса и ссылка на Telegram
     │
     └── Resources
         ├── Assets.xcassets
-        │   ├── AppIcon.appiconset  # 1024x1024 universal iOS App Icon (mellclickericon.png)
-        │   └── MellButton.imageset # Main circular click button asset (MellButton.png)
+        │   ├── AppIcon.appiconset  # Универсальная иконка приложения 1024x1024 (mellclickericon.png)
+        │   └── MellButton.imageset # Ассет центральной круглой кнопки (MellButton.png)
         ├── Audio
-        │   ├── tap.mp3             # Low-latency tap sound effect
-        │   └── chekunec.mp3        # Auto-clicker passive audio effect
-        └── Info.plist              # Application configuration & permissions
+        │   ├── tap.mp3             # Звуковой эффект нажатия с минимальной задержкой
+        │   └── chekunec.mp3        # Звуковой эффект пассивного дохода Чекунца
+        └── Info.plist              # Конфигурация приложения и разрешения
 ```
 
 ---
 
-## 🚀 How to Run in Xcode
+## Запуск в Xcode
 
-1. Double-click **`MellClicker.xcodeproj`** to open the project in Xcode (Xcode 14+ / 15+ / 16+).
-2. Select any iPhone Simulator (e.g. **iPhone 15 Pro / iPhone 16**) or a connected physical iPhone.
-3. Press **⌘R** (Product > Run) to build and launch the game.
+1. Откройте файл **`MellClicker.xcodeproj`** в среде Xcode (версии 14, 15 или 16+).
+2. Выберите симулятор iPhone (например, **iPhone 15 Pro / iPhone 16**) или подключенное физическое устройство.
+3. Нажмите сочетание клавиш **Command + R** (Product > Run) для сборки и запуска игры.
 
 ---
 
-## 🎮 Features & Mechanics
+## Возможности и механики игры
 
-- **Кликер (Clicker Tab)**:
-  - Dynamic balance counter with smooth `.numericText()` transitions.
-  - Large circular button rendering `MellButton.png` with spring physics (`.scaleEffect`).
-  - Animated floating `+Multiplier` particles spawning on every tap.
-  - Concurrent low-latency `tap.mp3` playback and haptic impact feedback.
+- **Вкладка «Кликер»**:
+  - Динамический счетчик баланса с плавными переходами чисел `.numericText()`.
+  - Большая круглая кнопка с графикой `MellButton.png` и физикой пружины (`.scaleEffect`).
+  - Анимированные всплывающие частицы с множителем очков при каждом нажатии.
+  - Параллельное воспроизведение звука `tap.mp3` без задержек и тактильный отклик Taptic Engine.
 
-- **Магазин (Shop Tab)**:
-  - **Чекушка**: Multiplies tap earnings ($x1 \to x2 \to x4 \to x8\dots$). Formula: `cost * 2` (Base: 100).
-  - **Чекунец**: Automated assistant generating passive clicks every second with synchronous `chekunec.mp3` playback. Formula: `base * 1.20^count` (Base: 250).
+- **Вкладка «Магазин»**:
+  - **Чекушка**: Удваивает доход за один клик (x1 -> x2 -> x4 -> x8...). Формула стоимости: `текущая_цена * 2` (базовая: 100).
+  - **Чекунец**: Автоматический помощник, приносящий очки каждую секунду с воспроизведением звукового эффекта `chekunec.mp3`. Формула стоимости: `база * 1.20^количество` (базовая: 250).
 
-- **Настройки (Settings Tab)**:
-  - Sound FX (Mute / Unmute) and Haptic feedback switches.
-  - Destructive progress reset with standard system confirmation alert.
-  - **Создатель и разработчик**: Interactive HIG `Link` to [Telegram: @VityaV](https://t.me/VityaV).
+- **Вкладка «Настройки»**:
+  - Переключатели звуковых эффектов (включение / выключение) и тактильного отклика.
+  - Сброс игрового прогресса с системным диалогом подтверждения.
+  - Информация о версии: **Релиз 1.0.0**.
+  - Раздел «Создатель и разработчик»: нативная ссылка на [Telegram: @VityaV](https://t.me/VityaV).
+

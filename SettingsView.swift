@@ -80,7 +80,14 @@ struct SettingsView: View {
                     HStack {
                         Text("Версия")
                         Spacer()
-                        Text("1.0.0 (Native iOS)")
+                        Text("1.0.0")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    HStack {
+                        Text("Сборка")
+                        Spacer()
+                        Text("Релиз 1.0.0")
                             .foregroundColor(.secondary)
                     }
                     
