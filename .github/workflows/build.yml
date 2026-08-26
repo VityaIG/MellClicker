@@ -11,7 +11,6 @@ jobs:
   build-ipa:
     name: Build iOS App (.ipa)
     runs-on: macos-14
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,6 +19,8 @@ jobs:
         run: |
           if [ -d "/Applications/Xcode_15.4.app" ]; then
             sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_15.3.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer
           else
             sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           fi
@@ -32,7 +33,7 @@ jobs:
             -scheme MellClicker \
             -configuration Release \
             -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
+            -destination "generic/platform=iOS" \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -59,4 +60,3 @@ jobs:
         with:
           name: MellClicker-IPA
           path: build/MellClicker.ipa
-
