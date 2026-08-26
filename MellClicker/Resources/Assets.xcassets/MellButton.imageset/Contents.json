@@ -1,21 +1,23 @@
 {
-  "images" : [
+  "images": [
     {
-      "filename" : "MellButton.png",
-      "idiom" : "universal",
-      "scale" : "1x"
+      "filename": "MellButton.png",
+      "idiom": "universal",
+      "scale": "1x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "2x"
+      "filename": "MellButton@2x.png",
+      "idiom": "universal",
+      "scale": "2x"
     },
     {
-      "idiom" : "universal",
-      "scale" : "3x"
+      "filename": "MellButton@3x.png",
+      "idiom": "universal",
+      "scale": "3x"
     }
   ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
+  "info": {
+    "author": "xcode",
+    "version": 1
   }
 }
