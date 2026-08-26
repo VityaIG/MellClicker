@@ -37,6 +37,7 @@ struct ShopView: View {
                         
                         // Item 1: Chekushka
                         ShopItemCard(
+                            viewModel: viewModel,
                             icon: "hand.tap.fill",
                             iconColor: viewModel.currentAccentColor,
                             title: "Чекушка",
@@ -44,12 +45,12 @@ struct ShopView: View {
                             stats: "Множитель: x\(viewModel.clickMultiplier) -> x\(viewModel.clickMultiplier * 2)",
                             cost: viewModel.formattedChekushkaCost,
                             canAfford: viewModel.balance >= viewModel.chekushkaCost,
-                            action: { viewModel.buyChekushka() },
-                            viewModel: viewModel
+                            action: { viewModel.buyChekushka() }
                         )
                         
                         // Item 2: Chekunec
                         ShopItemCard(
+                            viewModel: viewModel,
                             icon: "bolt.fill",
                             iconColor: .blue,
                             title: "Чекунец",
@@ -57,8 +58,7 @@ struct ShopView: View {
                             stats: "Куплено: \(viewModel.autoClickerCount) шт. (+1/сек)",
                             cost: viewModel.formattedChekunecCost,
                             canAfford: viewModel.balance >= viewModel.chekunecCost,
-                            action: { viewModel.buyChekunec() },
-                            viewModel: viewModel
+                            action: { viewModel.buyChekunec() }
                         )
                     }
                 }
