@@ -29,7 +29,7 @@ struct LeaderboardView: View {
                         score: viewModel.formattedBalance
                     )
                     
-                    // MARK: - Top 3 Podium (if not searching)
+                    // MARK: - Top 3 Podium (if not searching and 3+ players)
                     if searchText.isEmpty && sortedEntries.count >= 3 {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("ТОП ИГРОКОВ")
@@ -49,28 +49,41 @@ struct LeaderboardView: View {
                     // MARK: - Rankings List
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text(searchText.isEmpty ? "ВСЕ УЧАСТНИКИ" : "РЕЗУЛЬТАТЫ ПОИСКА")
+                            Text(searchText.isEmpty ? "ТАБЛИЦА РЕКОРДОВ" : "РЕЗУЛЬТАТЫ ПОИСКА")
                                 .font(.caption.weight(.semibold))
                                 .foregroundColor(.secondary)
                             
                             Spacer()
                             
-                            Text("Всего: \(sortedEntries.count)")
+                            Text("Участников: \(sortedEntries.count)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 4)
                         
-                        VStack(spacing: 8) {
-                            ForEach(Array(filteredEntries.enumerated()), id: \.element.id) { index, entry in
-                                // Find actual global rank in sorted array
-                                let actualRank = (sortedEntries.firstIndex(where: { $0.id == entry.id }) ?? index) + 1
-                                
-                                LeaderboardRow(
-                                    rank: actualRank,
-                                    entry: entry,
-                                    viewModel: viewModel
-                                )
+                        if filteredEntries.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "person.slash")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(.secondary)
+                                Text("Игроки не найдены")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                        } else {
+                            VStack(spacing: 8) {
+                                ForEach(Array(filteredEntries.enumerated()), id: \.element.id) { index, entry in
+                                    // Find actual global rank in sorted array
+                                    let actualRank = (sortedEntries.firstIndex(where: { $0.id == entry.id }) ?? index) + 1
+                                    
+                                    LeaderboardRow(
+                                        rank: actualRank,
+                                        entry: entry,
+                                        viewModel: viewModel
+                                    )
+                                }
                             }
                         }
                     }

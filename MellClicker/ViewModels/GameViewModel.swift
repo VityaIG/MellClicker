@@ -240,23 +240,11 @@ final class GameViewModel: ObservableObject {
     private func loadLeaderboard() {
         let defaults = UserDefaults.standard
         if let data = defaults.data(forKey: Keys.leaderboardData),
-           let saved = try? JSONDecoder().decode([LeaderboardEntry].self, from: data),
-           !saved.isEmpty {
-            self.leaderboard = saved
+           let saved = try? JSONDecoder().decode([LeaderboardEntry].self, from: data) {
+            // Keep only the user entry or dynamically accumulated real players
+            self.leaderboard = saved.filter { $0.isUser }
         } else {
-            // Seed initial realistic community leaderboard
-            self.leaderboard = [
-                LeaderboardEntry(name: "Mellstroy", score: 5000000, isUser: false, avatarColorHex: "#FF3B30"),
-                LeaderboardEntry(name: "Папич", score: 2500000, isUser: false, avatarColorHex: "#5856D6"),
-                LeaderboardEntry(name: "Zubareff", score: 1800000, isUser: false, avatarColorHex: "#FF9500"),
-                LeaderboardEntry(name: "Buster", score: 950000, isUser: false, avatarColorHex: "#34C759"),
-                LeaderboardEntry(name: "Kuertov", score: 420000, isUser: false, avatarColorHex: "#007AFF"),
-                LeaderboardEntry(name: "VityaV", score: 250000, isUser: false, avatarColorHex: "#AF52DE"),
-                LeaderboardEntry(name: "FrameTamer", score: 120000, isUser: false, avatarColorHex: "#FF2D55"),
-                LeaderboardEntry(name: "Shadowkek", score: 75000, isUser: false, avatarColorHex: "#5AC8FA"),
-                LeaderboardEntry(name: "Evelone", score: 35000, isUser: false, avatarColorHex: "#FFCC00"),
-                LeaderboardEntry(name: "Bratishkin", score: 15000, isUser: false, avatarColorHex: "#FF9500")
-            ]
+            self.leaderboard = []
         }
         
         // Ensure user entry exists

@@ -4,16 +4,16 @@ import AudioToolbox
 import UIKit
 
 /// High-performance audio manager managing concurrent, low-latency audio playback
-/// for tap.mp3 and chekunec.mp3 using AVFoundation.
+/// for tap.mp3 and chekunec.mp3 using AVFoundation with reliable fallback.
 final class AudioManager: NSObject {
     static let shared = AudioManager()
     
     private var tapPlayers: [AVAudioPlayer] = []
-    private let tapPlayerPoolSize = 6
+    private let tapPlayerPoolSize = 8
     private var currentTapIndex = 0
     
     private var chekunecPlayer: AVAudioPlayer?
-    private var tempPlayers: [AVAudioPlayer] = []
+    private var isAudioSessionConfigured = false
     
     private override init() {
         super.init()
@@ -26,18 +26,44 @@ final class AudioManager: NSObject {
     private func setupAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            // Set playback category with ambient / mix options so it plays even in silent mode
+            try session.setCategory(.ambient, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
+            isAudioSessionConfigured = true
         } catch {
             print("[AudioManager] Failed to configure AVAudioSession: \(error)")
         }
+    }
+    
+    private func ensureAudioSessionActive() {
+        if !isAudioSessionConfigured {
+            setupAudioSession()
+        }
+    }
+    
+    // MARK: - File Path Resolution
+    
+    private func findAudioURL(filename: String) -> URL? {
+        // 1. Direct bundle resource (tap.mp3 or tap)
+        if let url = Bundle.main.url(forResource: filename, withExtension: "mp3") {
+            return url
+        }
+        // 2. Resource inside Audio subfolder
+        if let url = Bundle.main.url(forResource: filename, withExtension: "mp3", subdirectory: "Audio") {
+            return url
+        }
+        // 3. Fallback search via Bundle path
+        if let path = Bundle.main.path(forResource: filename, ofType: "mp3") {
+            return URL(fileURLWithPath: path)
+        }
+        return nil
     }
     
     // MARK: - Preloading
     
     private func preloadAudioFiles() {
         // 1. Preload tap pool
-        if let tapURL = Bundle.main.url(forResource: "tap", withExtension: "mp3") {
+        if let tapURL = findAudioURL(filename: "tap") {
             var pool: [AVAudioPlayer] = []
             for _ in 0..<tapPlayerPoolSize {
                 do {
@@ -46,31 +72,38 @@ final class AudioManager: NSObject {
                     player.prepareToPlay()
                     pool.append(player)
                 } catch {
-                    print("Error: \(error)")
+                    print("[AudioManager] Error loading tap.mp3 player: \(error)")
                 }
             }
             self.tapPlayers = pool
         }
         
         // 2. Preload chekunec
-        if let chekunecURL = Bundle.main.url(forResource: "chekunec", withExtension: "mp3") {
+        if let chekunecURL = findAudioURL(filename: "chekunec") {
             do {
                 let player = try AVAudioPlayer(contentsOf: chekunecURL)
                 player.volume = 1.0
                 player.prepareToPlay()
                 self.chekunecPlayer = player
             } catch {
-                print("Error: \(error)")
+                print("[AudioManager] Error loading chekunec.mp3: \(error)")
             }
         }
     }
     
     // MARK: - Public Playback Methods
     
+    /// Plays the tap.mp3 sound on manual button clicks
     func playTap() {
+        ensureAudioSessionActive()
+        
+        if tapPlayers.isEmpty {
+            preloadAudioFiles()
+        }
+        
         guard !tapPlayers.isEmpty else {
-            // FALLBACK TO NATIVE IOS SOUND IF CUSTOM MP3 FAILS OR IS MISSING
-            AudioServicesPlaySystemSound(1104) 
+            // Native system tap fallback if asset is unavailable
+            AudioServicesPlaySystemSound(1104)
             return
         }
         
@@ -80,12 +113,20 @@ final class AudioManager: NSObject {
         if player.isPlaying {
             player.currentTime = 0
         }
+        
         if !player.play() {
             AudioServicesPlaySystemSound(1104)
         }
     }
     
+    /// Plays the chekunec.mp3 sound on auto clicker ticks
     func playChekunec() {
+        ensureAudioSessionActive()
+        
+        if chekunecPlayer == nil {
+            preloadAudioFiles()
+        }
+        
         if let player = chekunecPlayer {
             if player.isPlaying {
                 player.currentTime = 0
@@ -94,18 +135,8 @@ final class AudioManager: NSObject {
                 AudioServicesPlaySystemSound(1016)
             }
         } else {
-            // FALLBACK TO NATIVE IOS SOUND
+            // Native system pop fallback if asset is unavailable
             AudioServicesPlaySystemSound(1016)
-        }
-    }
-    
-    private func playDirect(resource: String) {
-        guard let url = Bundle.main.url(forResource: resource, withExtension: "mp3") else { return }
-        if let player = try? AVAudioPlayer(contentsOf: url) {
-            player.prepareToPlay()
-            player.play()
-            tempPlayers.append(player)
-            tempPlayers.removeAll(where: { !$0.isPlaying })
         }
     }
 }
