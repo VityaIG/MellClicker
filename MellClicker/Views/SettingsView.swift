@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var editedName: String = ""
     @State private var nameError: String? = nil
     
+    @State private var lastTestedSound: String? = nil
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -24,7 +26,7 @@ struct SettingsView: View {
                                     ZStack {
                                         Circle()
                                             .fill(viewModel.currentAccentColor)
-                                            .frame(width: 44, height: 44)
+                                            .frame(width: 48, height: 48)
                                         
                                         Text(String(viewModel.effectiveUsername.prefix(1)).uppercased())
                                             .font(.headline.weight(.bold))
@@ -42,9 +44,9 @@ struct SettingsView: View {
                                                 .foregroundColor(viewModel.currentAccentColor)
                                         }
                                         
-                                        Text("Ранг в топе: #\(viewModel.userRank)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                        Text(viewModel.playerRankTitle)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(viewModel.currentAccentColor)
                                     }
                                     
                                     Spacer()
@@ -55,6 +57,19 @@ struct SettingsView: View {
                                 }
                                 .padding(.vertical, 10)
                             }
+                        }
+                    }
+                    
+                    // MARK: - Game Statistics
+                    SettingsSection(title: "Статистика игры") {
+                        VStack(spacing: 0) {
+                            SettingsInfoRow(title: "Звание", value: viewModel.playerRankTitle)
+                            Divider().padding(.leading, 16)
+                            SettingsInfoRow(title: "Всего нажатий", value: "\(viewModel.formatNumber(viewModel.totalClicks))")
+                            Divider().padding(.leading, 16)
+                            SettingsInfoRow(title: "Рекорд комбо-стрика", value: "\(viewModel.maxCombo)x")
+                            Divider().padding(.leading, 16)
+                            SettingsInfoRow(title: "Заработано пассивно", value: "\(viewModel.formatNumber(viewModel.totalPassiveEarned))")
                         }
                     }
                     
@@ -91,27 +106,93 @@ struct SettingsView: View {
                             SettingsPicker(
                                 icon: "paintpalette.fill",
                                 color: viewModel.currentAccentColor,
-                                title: "Цвет",
+                                title: "Цвет темы",
                                 selection: $viewModel.accentThemeRawValue
                             )
+                        }
+                    }
+                    
+                    // MARK: - Sound Testing Controls
+                    SettingsSection(title: "Проверка звуков") {
+                        VStack(spacing: 0) {
+                            Button(action: {
+                                AudioManager.shared.configureAudioSession()
+                                AudioManager.shared.playTap()
+                                lastTestedSound = "tap"
+                            }) {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "hand.tap.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(viewModel.currentAccentColor)
+                                        .frame(width: 32)
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Тест tap.mp3 (Клик)")
+                                            .font(.body)
+                                            .foregroundColor(.primary)
+                                        Text("Воспроизвести звук одиночного нажатия")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(viewModel.currentAccentColor)
+                                }
+                                .padding(.vertical, 10)
+                            }
                             
                             Divider().padding(.leading, 50)
                             
-                            Button(action: { showResetConfirmation = true }) {
+                            Button(action: {
+                                AudioManager.shared.configureAudioSession()
+                                AudioManager.shared.playChekunec()
+                                lastTestedSound = "chekunec"
+                            }) {
                                 HStack(spacing: 16) {
-                                    Image(systemName: "trash.fill")
+                                    Image(systemName: "bolt.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.red)
+                                        .foregroundColor(.blue)
                                         .frame(width: 32)
                                     
-                                    Text("Сбросить прогресс")
-                                        .foregroundColor(.red)
-                                        .font(.body)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Тест chekunec.mp3 (Чекунец)")
+                                            .font(.body)
+                                            .foregroundColor(.primary)
+                                        Text("Воспроизвести звук автокликера")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
                                     
                                     Spacer()
+                                    
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.blue)
                                 }
-                                .padding(.vertical, 12)
+                                .padding(.vertical, 10)
                             }
+                        }
+                    }
+                    
+                    // MARK: - Reset Progress
+                    SettingsSection(title: "Опасная зона") {
+                        Button(action: { showResetConfirmation = true }) {
+                            HStack(spacing: 16) {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.red)
+                                    .frame(width: 32)
+                                
+                                Text("Сбросить весь прогресс")
+                                    .foregroundColor(.red)
+                                    .font(.body.weight(.medium))
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 12)
                         }
                     }
                     
@@ -122,10 +203,10 @@ struct SettingsView: View {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                                         .fill(Color.blue)
-                                        .frame(width: 40, height: 40)
+                                        .frame(width: 36, height: 36)
                                     
                                     Image(systemName: "paperplane.fill")
-                                        .font(.system(size: 20))
+                                        .font(.system(size: 18))
                                         .foregroundColor(.white)
                                 }
                                 .frame(width: 32)
@@ -146,16 +227,14 @@ struct SettingsView: View {
                                     .font(.footnote.weight(.bold))
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 10)
                         }
                     }
                     
                     // MARK: - About Section
                     SettingsSection(title: "О приложении") {
                         VStack(spacing: 0) {
-                            SettingsInfoRow(title: "Версия", value: "1.0.0")
-                            Divider().padding(.leading, 16)
-                            SettingsInfoRow(title: "Сборка", value: "Релиз 1.0.0")
+                            SettingsInfoRow(title: "Версия", value: "1.2.0")
                             Divider().padding(.leading, 16)
                             SettingsInfoRow(title: "Движок", value: "SwiftUI + AVFoundation")
                         }
@@ -228,7 +307,7 @@ struct SettingsView: View {
                             Button("Сохранить") {
                                 let trimmed = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
                                 if !trimmed.isEmpty && viewModel.isUsernameTaken(trimmed) {
-                                    nameError = "Этот никнейм уже занят другим игроком."
+                                    nameError = "Этот никнейм уже занят."
                                 } else {
                                     viewModel.username = trimmed
                                     showEditNameSheet = false
@@ -303,7 +382,7 @@ struct SettingsInfoRow: View {
             Spacer()
             Text(value)
                 .foregroundColor(.secondary)
-                .font(.body)
+                .font(.body.weight(.medium))
         }
         .padding(.vertical, 12)
     }

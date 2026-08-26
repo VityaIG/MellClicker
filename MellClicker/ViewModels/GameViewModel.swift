@@ -88,6 +88,27 @@ final class GameViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Published Stats & Combo System
+    
+    @Published var comboClicks: Int = 0
+    @Published var totalClicks: Int {
+        didSet {
+            UserDefaults.standard.set(totalClicks, forKey: Keys.totalClicks)
+        }
+    }
+    
+    @Published var maxCombo: Int {
+        didSet {
+            UserDefaults.standard.set(maxCombo, forKey: Keys.maxCombo)
+        }
+    }
+    
+    @Published var totalPassiveEarned: Int {
+        didSet {
+            UserDefaults.standard.set(totalPassiveEarned, forKey: Keys.totalPassiveEarned)
+        }
+    }
+    
     // MARK: - Published Settings State
     
     @Published var isSoundEnabled: Bool {
@@ -138,7 +159,7 @@ final class GameViewModel: ObservableObject {
     // MARK: - Base Configuration Constants
     
     let baseChekushkaCost: Int = 100
-    let baseChekunecCost: Int = 250
+    let baseChekunecCost: Int = 1000 // Substantially higher starting cost for duplicate auto-clicker
     
     // MARK: - Computed Theme Helpers
     
@@ -150,10 +171,69 @@ final class GameViewModel: ObservableObject {
         AccentTheme(rawValue: accentThemeRawValue)?.textColor ?? Color(uiColor: .systemBackground)
     }
     
-    // MARK: - Computed Helpers
+    // MARK: - Computed Helpers & Combo Math
+    
+    var effectiveUsername: String {
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Игрок" : trimmed
+    }
+    
+    func isUsernameTaken(_ name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return leaderboard.contains { !$0.isUser && $0.name.lowercased() == trimmed }
+    }
     
     var passiveIncomePerSecond: Int {
-        return autoClickerCount * 1
+        return autoClickerCount
+    }
+    
+    var comboMultiplier: Double {
+        if comboClicks >= 50 {
+            return 3.0
+        } else if comboClicks >= 25 {
+            return 2.0
+        } else if comboClicks >= 10 {
+            return 1.5
+        } else {
+            return 1.0
+        }
+    }
+    
+    var isFrenzyActive: Bool {
+        comboClicks >= 25
+    }
+    
+    var comboTitle: String {
+        if comboClicks >= 50 {
+            return "💥 FRENZY x3.0!"
+        } else if comboClicks >= 25 {
+            return "🔥 МЕГА x2.0!"
+        } else if comboClicks >= 10 {
+            return "⚡️ КОМБО x1.5!"
+        } else {
+            return ""
+        }
+    }
+    
+    var effectiveClickPower: Int {
+        let multiplied = Double(clickMultiplier) * comboMultiplier
+        return max(1, Int(multiplied))
+    }
+    
+    var playerRankTitle: String {
+        if balance >= 10_000_000 {
+            return "🌌 Легенда Меллстроя"
+        } else if balance >= 1_000_000 {
+            return "👑 Король Кликеров"
+        } else if balance >= 100_000 {
+            return "💰 Олигарх"
+        } else if balance >= 10_000 {
+            return "⚡️ Гроза Чекунцов"
+        } else if balance >= 1_000 {
+            return "🍺 Любитель Чекушек"
+        } else {
+            return "🍼 Новичок"
+        }
     }
     
     var formattedBalance: String {
@@ -173,7 +253,7 @@ final class GameViewModel: ObservableObject {
         if let index = sorted.firstIndex(where: { $0.isUser }) {
             return index + 1
         }
-        return sorted.count + 1
+        return 1
     }
     
     var sortedLeaderboard: [LeaderboardEntry] {
@@ -202,9 +282,13 @@ final class GameViewModel: ObservableObject {
         static let username = "mc_username"
         static let hasCompletedOnboarding = "mc_hasCompletedOnboarding"
         static let leaderboardData = "mc_leaderboardData"
+        static let totalClicks = "mc_totalClicks"
+        static let maxCombo = "mc_maxCombo"
+        static let totalPassiveEarned = "mc_totalPassiveEarned"
     }
     
     private var timerSubscription: AnyCancellable?
+    private var comboDecayWorkItem: DispatchWorkItem?
     
     // MARK: - Initialization & Persistence Loading
     
@@ -215,7 +299,11 @@ final class GameViewModel: ObservableObject {
         self.clickMultiplier = defaults.object(forKey: Keys.clickMultiplier) != nil ? max(1, defaults.integer(forKey: Keys.clickMultiplier)) : 1
         self.chekushkaCost = defaults.object(forKey: Keys.chekushkaCost) != nil ? max(100, defaults.integer(forKey: Keys.chekushkaCost)) : 100
         self.autoClickerCount = defaults.object(forKey: Keys.autoClickerCount) != nil ? max(0, defaults.integer(forKey: Keys.autoClickerCount)) : 0
-        self.chekunecCost = defaults.object(forKey: Keys.chekunecCost) != nil ? max(250, defaults.integer(forKey: Keys.chekunecCost)) : 250
+        self.chekunecCost = defaults.object(forKey: Keys.chekunecCost) != nil ? max(1000, defaults.integer(forKey: Keys.chekunecCost)) : 1000
+        
+        self.totalClicks = defaults.integer(forKey: Keys.totalClicks)
+        self.maxCombo = defaults.integer(forKey: Keys.maxCombo)
+        self.totalPassiveEarned = defaults.integer(forKey: Keys.totalPassiveEarned)
         
         self.isSoundEnabled = defaults.object(forKey: Keys.isSoundEnabled) != nil ? defaults.bool(forKey: Keys.isSoundEnabled) : true
         self.isHapticsEnabled = defaults.object(forKey: Keys.isHapticsEnabled) != nil ? defaults.bool(forKey: Keys.isHapticsEnabled) : true
@@ -241,7 +329,7 @@ final class GameViewModel: ObservableObject {
         let defaults = UserDefaults.standard
         if let data = defaults.data(forKey: Keys.leaderboardData),
            let saved = try? JSONDecoder().decode([LeaderboardEntry].self, from: data) {
-            // Keep only the user entry or dynamically accumulated real players
+            // Keep only the user entry or dynamic real players
             self.leaderboard = saved.filter { $0.isUser }
         } else {
             self.leaderboard = []
@@ -249,17 +337,17 @@ final class GameViewModel: ObservableObject {
         
         // Ensure user entry exists
         syncUserEntryInLeaderboard()
-        saveLeaderboard()
     }
     
     func saveLeaderboard() {
-        if let data = try? JSONEncoder().encode(leaderboard) {
-            UserDefaults.standard.set(data, forKey: Keys.leaderboardData)
+        if let encoded = try? JSONEncoder().encode(leaderboard) {
+            UserDefaults.standard.set(encoded, forKey: Keys.leaderboardData)
         }
     }
     
     private func syncUserEntryInLeaderboard() {
-        let displayName = effectiveUsername
+        let displayName = username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Вы" : username
+        
         if let index = leaderboard.firstIndex(where: { $0.isUser }) {
             leaderboard[index].name = displayName
             leaderboard[index].score = balance
@@ -268,7 +356,7 @@ final class GameViewModel: ObservableObject {
                 name: displayName,
                 score: balance,
                 isUser: true,
-                avatarColorHex: "#007AFF"
+                avatarColorHex: "#34C759"
             )
             leaderboard.append(userEntry)
         }
@@ -276,70 +364,35 @@ final class GameViewModel: ObservableObject {
     
     private func updateUserLeaderboardScore() {
         if let index = leaderboard.firstIndex(where: { $0.isUser }) {
-            if leaderboard[index].score != balance {
-                leaderboard[index].score = balance
-                saveLeaderboard()
-            }
-        } else {
-            syncUserEntryInLeaderboard()
+            leaderboard[index].score = balance
+            saveLeaderboard()
         }
     }
     
     private func updateUserLeaderboardName() {
-        let displayName = effectiveUsername
+        let displayName = username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Вы" : username
         if let index = leaderboard.firstIndex(where: { $0.isUser }) {
             leaderboard[index].name = displayName
             saveLeaderboard()
         }
     }
     
-    var effectiveUsername: String {
-        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Игрок" : trimmed
-    }
-    
-    /// Checks if a nickname is already taken by another player in the leaderboard (case-insensitive)
-    func isUsernameTaken(_ candidate: String) -> Bool {
-        let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false } // Empty name is allowed
-        
-        return leaderboard.contains { entry in
-            !entry.isUser && entry.name.compare(trimmed, options: .caseInsensitive) == .orderedSame
-        }
-    }
-    
-    /// Sets user's name if valid and completes onboarding
-    func finishOnboarding(withName chosenName: String) {
-        let trimmed = chosenName.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.username = trimmed
-        self.hasCompletedOnboarding = true
-        self.showOnboarding = false
-        syncUserEntryInLeaderboard()
-        saveLeaderboard()
-        
-        if isHapticsEnabled {
-            HapticManager.shared.purchaseSuccess()
-        }
-    }
-    
-    // MARK: - Timer / Passive Income
+    // MARK: - Auto-Clicker Timer (Passive Income)
     
     private func startAutoClickerTimer() {
-        timerSubscription?.cancel()
-        
         timerSubscription = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                guard let self = self else { return }
-                self.processAutoClick()
+                self?.handleAutoClickerTick()
             }
     }
     
-    private func processAutoClick() {
+    private func handleAutoClickerTick() {
         guard autoClickerCount > 0 else { return }
         
         let passiveIncome = self.passiveIncomePerSecond
         balance += passiveIncome
+        totalPassiveEarned += passiveIncome
         
         if isSoundEnabled {
             AudioManager.shared.playChekunec()
@@ -348,16 +401,39 @@ final class GameViewModel: ObservableObject {
     
     // MARK: - User Actions
     
-    /// Handles manual button tap
+    /// Handles manual button tap with combo system
     func click() {
-        balance += clickMultiplier
+        let power = effectiveClickPower
+        balance += power
+        totalClicks += 1
+        
+        // Combo increment
+        comboClicks += 1
+        if comboClicks > maxCombo {
+            maxCombo = comboClicks
+        }
+        
+        // Reset combo decay timer
+        comboDecayWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
+                self.comboClicks = 0
+            }
+        }
+        comboDecayWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: workItem)
         
         if isSoundEnabled {
             AudioManager.shared.playTap()
         }
         
         if isHapticsEnabled {
-            HapticManager.shared.tapFeedback()
+            if isFrenzyActive {
+                HapticManager.shared.purchaseSuccess()
+            } else {
+                HapticManager.shared.tapFeedback()
+            }
         }
     }
     
@@ -376,7 +452,7 @@ final class GameViewModel: ObservableObject {
         if isSoundEnabled { AudioManager.shared.playTap() }
     }
     
-    /// Purchases "Чекунец" auto-clicker unit
+    /// Purchases "Чекунец" auto-clicker unit (doubles the auto-click count/power and doubles cost)
     func buyChekunec() {
         guard balance >= chekunecCost else {
             if isHapticsEnabled { HapticManager.shared.purchaseFailure() }
@@ -384,8 +460,16 @@ final class GameViewModel: ObservableObject {
         }
         
         balance -= chekunecCost
-        autoClickerCount += 1
-        chekunecCost = Int(Double(baseChekunecCost) * pow(1.20, Double(autoClickerCount)))
+        
+        // Duplication mechanic: 0 -> 1 -> 2 -> 4 -> 8 -> 16...
+        if autoClickerCount == 0 {
+            autoClickerCount = 1
+        } else {
+            autoClickerCount *= 2
+        }
+        
+        // Price doubles per purchase
+        chekunecCost *= 2
         
         if isHapticsEnabled { HapticManager.shared.purchaseSuccess() }
         if isSoundEnabled { AudioManager.shared.playChekunec() }
@@ -398,6 +482,7 @@ final class GameViewModel: ObservableObject {
         chekushkaCost = baseChekushkaCost
         autoClickerCount = 0
         chekunecCost = baseChekunecCost
+        comboClicks = 0
         
         syncUserEntryInLeaderboard()
         saveLeaderboard()

@@ -35,7 +35,7 @@ struct ShopView: View {
                             .font(.title2.weight(.bold))
                             .padding(.top, 8)
                         
-                        // Item 1: Chekushka
+                        // Item 1: Chekushka (x2 Click Power)
                         ShopItemCard(
                             viewModel: viewModel,
                             icon: "hand.tap.fill",
@@ -48,14 +48,16 @@ struct ShopView: View {
                             action: { viewModel.buyChekushka() }
                         )
                         
-                        // Item 2: Chekunec
+                        // Item 2: Chekunec (Duplicating Auto-Clicker x2)
+                        let currentRate = viewModel.autoClickerCount
+                        let nextRate = currentRate == 0 ? 1 : currentRate * 2
                         ShopItemCard(
                             viewModel: viewModel,
                             icon: "bolt.fill",
                             iconColor: .blue,
                             title: "Чекунец",
-                            description: "Автоматически приносит +1/сек.",
-                            stats: "Куплено: \(viewModel.autoClickerCount) шт. (+1/сек)",
+                            description: "Каждая покупка удваивает пассивный доход в секунду.",
+                            stats: "Автокликер: +\(currentRate) -> +\(nextRate)/сек (x2)",
                             cost: viewModel.formattedChekunecCost,
                             canAfford: viewModel.balance >= viewModel.chekunecCost,
                             action: { viewModel.buyChekunec() }
