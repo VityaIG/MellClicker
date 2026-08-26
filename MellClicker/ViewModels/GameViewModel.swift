@@ -110,6 +110,12 @@ final class GameViewModel: ObservableObject {
     
     // MARK: - Published Settings State
     
+    @Published var isSoundEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isSoundEnabled, forKey: Keys.isSoundEnabled)
+        }
+    }
+    
     @Published var isHapticsEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isHapticsEnabled, forKey: Keys.isHapticsEnabled)
@@ -288,6 +294,7 @@ final class GameViewModel: ObservableObject {
         static let chekushkaCost = "mc_chekushkaCost"
         static let autoClickerCount = "mc_autoClickerCount"
         static let chekunecCost = "mc_chekunecCost"
+        static let isSoundEnabled = "mc_isSoundEnabled"
         static let isHapticsEnabled = "mc_isHapticsEnabled"
         static let showComboHUD = "mc_showComboHUD"
         static let isDarkMode = "mc_isDarkMode"
@@ -330,6 +337,7 @@ final class GameViewModel: ObservableObject {
         self.maxCombo = defaults.integer(forKey: Keys.maxCombo)
         self.totalPassiveEarned = defaults.integer(forKey: Keys.totalPassiveEarned)
         
+        self.isSoundEnabled = defaults.object(forKey: Keys.isSoundEnabled) != nil ? defaults.bool(forKey: Keys.isSoundEnabled) : true
         self.isHapticsEnabled = defaults.object(forKey: Keys.isHapticsEnabled) != nil ? defaults.bool(forKey: Keys.isHapticsEnabled) : true
         self.showComboHUD = defaults.object(forKey: Keys.showComboHUD) != nil ? defaults.bool(forKey: Keys.showComboHUD) : true
         self.isDarkMode = defaults.object(forKey: Keys.isDarkMode) != nil ? defaults.bool(forKey: Keys.isDarkMode) : true
@@ -524,6 +532,10 @@ final class GameViewModel: ObservableObject {
         let passiveIncome = self.passiveIncomePerSecond
         balance += passiveIncome
         totalPassiveEarned += passiveIncome
+        
+        if isSoundEnabled {
+            AudioManager.shared.playChekunec()
+        }
     }
     
     // MARK: - User Actions
@@ -533,6 +545,10 @@ final class GameViewModel: ObservableObject {
         let power = effectiveClickPower
         balance += power
         totalClicks += 1
+        
+        if isSoundEnabled {
+            AudioManager.shared.playTap()
+        }
         
         // Combo increment
         comboClicks += 1

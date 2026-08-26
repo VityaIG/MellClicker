@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Smartphone, CheckCircle, ExternalLink, Trophy, Users, RefreshCw, Volume2, VolumeX, Flame, Zap, Award, Sparkles } from 'lucide-react';
+import { soundEngine } from './audio';
 
 interface LeaderboardPlayer {
   id: string;
@@ -62,36 +63,13 @@ export default function App() {
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState<boolean>(false);
   const [serverOnline, setServerOnline] = useState<boolean>(true);
 
-  // Audio synthesis for instant web clicks without blocking
-  const playWebSound = (type: 'tap' | 'chekunec') => {
+  // Play real audio files (tap.mp3 and chekunec.mp3)
+  const playSound = (type: 'tap' | 'chekunec') => {
     if (!isSoundEnabled) return;
-    try {
-      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      
-      if (type === 'tap') {
-        osc.frequency.setValueAtTime(440 + Math.min(combo * 10, 400), audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.09);
-      } else {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(550, audioCtx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.13);
-      }
-    } catch {
-      // Audio context might be restricted before user gesture
+    if (type === 'tap') {
+      soundEngine.playTap();
+    } else {
+      soundEngine.playChekunec();
     }
   };
 
@@ -104,7 +82,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [combo]);
 
-  // Passive Income Timer
+  // Passive Income Timer (Chekunec Auto-Clicker)
   useEffect(() => {
     if (autoClickerCount <= 0) return;
     const interval = setInterval(() => {
@@ -113,7 +91,9 @@ export default function App() {
         localStorage.setItem('mc_web_balance', next.toString());
         return next;
       });
-      playWebSound('chekunec');
+      if (isSoundEnabled) {
+        soundEngine.playChekunec();
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, [autoClickerCount, isSoundEnabled]);
@@ -197,7 +177,7 @@ export default function App() {
     setBalance(prev => prev + effectivePower);
     setCombo(prev => Math.min(100, prev + 1));
     setIsClicking(true);
-    playWebSound('tap');
+    playSound('tap');
 
     // Button tilt calculation
     const rect = e.currentTarget.getBoundingClientRect();

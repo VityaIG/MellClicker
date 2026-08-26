@@ -83,6 +83,15 @@ struct SettingsView: View {
                         SettingsSection(title: "Управление и вид") {
                             VStack(spacing: 0) {
                                 SettingsToggle(
+                                    icon: viewModel.isSoundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
+                                    color: .green,
+                                    title: "Звуковые эффекты (Звук)",
+                                    isOn: $viewModel.isSoundEnabled
+                                )
+                                
+                                Divider().padding(.leading, 50)
+                                
+                                SettingsToggle(
                                     icon: "iphone.radiowaves.left.and.right",
                                     color: .blue,
                                     title: "Тактильный отклик (Haptics)",
