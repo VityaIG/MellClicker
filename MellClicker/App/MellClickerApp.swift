@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// App Entry Point for MellClicker iOS Application.
 @main

@@ -3,10 +3,17 @@ import UIKit
 
 /// Model representing an individual floating "+X" animated particle when tapping.
 struct FloatingNumber: Identifiable {
-    let id = UUID()
+    let id: UUID
     let text: String
     var offset: CGSize
     var opacity: Double
+    
+    init(id: UUID = UUID(), text: String, offset: CGSize, opacity: Double) {
+        self.id = id
+        self.text = text
+        self.offset = offset
+        self.opacity = opacity
+    }
 }
 
 /// The main Clicker Tab view featuring dynamic balance, circular action button, and spring animations.
@@ -92,7 +99,7 @@ struct ClickerView: View {
                                     .fill(Color(uiColor: .systemBackground))
                                     .shadow(color: Color.black.opacity(0.12), radius: 24, x: 0, y: 12)
                                 
-                                // Image Asset with fallback
+                                // Image Asset
                                 Image("MellButton")
                                     .resizable()
                                     .scaledToFill()
@@ -151,16 +158,13 @@ struct ClickerView: View {
     // MARK: - Tap Interaction
     
     private func handleTap() {
-        // Trigger VM click (updates balance, plays tap sound & haptics)
         viewModel.click()
         
-        // Bounce Animation
         isPressed = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             isPressed = false
         }
         
-        // Spawn Floating Particle
         spawnFloatingNumber()
     }
     
@@ -175,7 +179,6 @@ struct ClickerView: View {
         
         floatingNumbers.append(newNumber)
         
-        // Animate up and fade out
         withAnimation(.easeOut(duration: 0.75)) {
             if let index = floatingNumbers.firstIndex(where: { $0.id == newNumber.id }) {
                 floatingNumbers[index].offset = CGSize(width: randomX + CGFloat.random(in: -20...20), height: -120)
@@ -183,7 +186,6 @@ struct ClickerView: View {
             }
         }
         
-        // Remove from memory after animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             floatingNumbers.removeAll(where: { $0.id == newNumber.id })
         }
