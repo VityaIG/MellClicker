@@ -7,10 +7,14 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-ipa:
     name: Build iOS App (.ipa)
     runs-on: macos-14
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,9 +29,6 @@ jobs:
             sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           fi
           xcodebuild -version
-
-      - name: Restore Pristine Images
-        run: bash restore_assets.sh
 
       - name: Build iOS App
         run: |
@@ -64,3 +65,23 @@ jobs:
         with:
           name: MellClicker-IPA
           path: build/MellClicker.ipa
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name != 'pull_request'
+        with:
+          tag_name: "v1.0.${{ github.run_number }}"
+          name: "Release v1.0.0 (Build ${{ github.run_number }})"
+          body: |
+            🎉 **Официальный релиз MellClicker!**
+            
+            В этой версии:
+            - Установлены новые иконки приложения и кнопки (Mellstroy)
+            - Звуки кликов и автокликера теперь работают правильно (даже в беззвучном режиме)
+            - Улучшен и обновлен игровой баланс
+            
+            📥 **Как установить:**
+            Скачайте прикрепленный файл `MellClicker.ipa` ниже и установите его на ваше iOS-устройство с помощью AltStore, Sideloadly, TrollStore или Scarlet.
+          files: build/MellClicker.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
