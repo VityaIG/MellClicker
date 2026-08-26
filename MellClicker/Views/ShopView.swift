@@ -1,137 +1,142 @@
 import SwiftUI
-import UIKit
 
-/// Shop View managing purchases for "Чекушка" (multiplier x2) and "Чекунец" (passive +1/s auto-clicker).
 struct ShopView: View {
     @ObservedObject var viewModel: GameViewModel
     
     var body: some View {
         NavigationStack {
-            List {
-                // MARK: - Баланс
-                Section {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Текущий баланс")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            HStack(spacing: 6) {
-                                Image(systemName: "circle.circle.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.title3)
-                                
-                                Text(viewModel.formattedBalance)
-                                    .font(.title2.weight(.bold))
-                            }
-                        }
+            ScrollView {
+                VStack(spacing: 20) {
+                    // MARK: - Balance Card
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Текущий баланс")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                         
-                        Spacer()
-                    }
-                    .padding(.vertical, 4)
-                }
-                
-                // MARK: - Товар 1: Чекушка
-                Section(header: Text("Улучшение клика"), footer: Text("Каждая покупка удваивает силу каждого вашего нажатия.")) {
-                    HStack(spacing: 16) {
-                        // Icon
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.orange.opacity(0.15))
-                                .frame(width: 48, height: 48)
-                            
-                            Image(systemName: "hand.tap.fill")
-                                .font(.system(size: 22))
+                        HStack(spacing: 8) {
+                            Image(systemName: "circle.circle.fill")
                                 .foregroundColor(.orange)
-                        }
-                        
-                        // Title & Info
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Чекушка")
-                                .font(.headline)
+                                .font(.title)
                             
-                            Text("Текущий множитель: x\(viewModel.clickMultiplier) (станет x\(viewModel.clickMultiplier * 2))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            Text(viewModel.formattedBalance)
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .minimumScaleFactor(0.5)
+                                .lineLimit(1)
                         }
-                        
-                        Spacer()
-                        
-                        // Buy Button
-                        Button(action: {
-                            viewModel.buyChekushka()
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "circle.circle.fill")
-                                    .font(.caption2)
-                                Text("\(viewModel.formattedChekushkaCost)")
-                                    .font(.subheadline.weight(.bold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.5)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(viewModel.balance >= viewModel.chekushkaCost ? Color.orange : Color(uiColor: .systemGray5))
-                            .foregroundColor(viewModel.balance >= viewModel.chekushkaCost ? .white : .secondary)
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                        .disabled(viewModel.balance < viewModel.chekushkaCost)
                     }
-                    .padding(.vertical, 6)
-                }
-                
-                // MARK: - Товар 2: Чекунец
-                Section(header: Text("Автокликер (Пассивный доход)"), footer: Text("Каждый купленный Чекунец автоматически приносит +1 к балансу каждую секунду.")) {
-                    HStack(spacing: 16) {
-                        // Icon
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.blue.opacity(0.15))
-                                .frame(width: 48, height: 48)
-                            
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 22))
-                                .foregroundColor(.blue)
-                        }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground))
+                    .cornerRadius(16)
+                    
+                    // MARK: - Shop Items
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Улучшения")
+                            .font(.title2.weight(.bold))
+                            .padding(.top, 8)
                         
-                        // Title & Info
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Чекунец")
-                                .font(.headline)
-                            
-                            Text("Куплено: \(viewModel.autoClickerCount) шт. (+1/сек)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        // Item 1: Chekushka
+                        ShopItemCard(
+                            icon: "hand.tap.fill",
+                            iconColor: .orange,
+                            title: "Чекушка",
+                            description: "Каждая покупка удваивает силу клика.",
+                            stats: "Множитель: x\(viewModel.clickMultiplier) -> x\(viewModel.clickMultiplier * 2)",
+                            cost: viewModel.formattedChekushkaCost,
+                            canAfford: viewModel.balance >= viewModel.chekushkaCost,
+                            action: { viewModel.buyChekushka() }
+                        )
                         
-                        Spacer()
-                        
-                        // Buy Button
-                        Button(action: {
-                            viewModel.buyChekunec()
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "circle.circle.fill")
-                                    .font(.caption2)
-                                Text("\(viewModel.formattedChekunecCost)")
-                                    .font(.subheadline.weight(.bold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.5)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(viewModel.balance >= viewModel.chekunecCost ? Color.blue : Color(uiColor: .systemGray5))
-                            .foregroundColor(viewModel.balance >= viewModel.chekunecCost ? .white : .secondary)
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(BorderlessButtonStyle())
-                        .disabled(viewModel.balance < viewModel.chekunecCost)
+                        // Item 2: Chekunec
+                        ShopItemCard(
+                            icon: "bolt.fill",
+                            iconColor: .blue,
+                            title: "Чекунец",
+                            description: "Автоматически приносит +1/сек.",
+                            stats: "Куплено: \(viewModel.autoClickerCount) шт. (+1/сек)",
+                            cost: viewModel.formattedChekunecCost,
+                            canAfford: viewModel.balance >= viewModel.chekunecCost,
+                            action: { viewModel.buyChekunec() }
+                        )
                     }
-                    .padding(.vertical, 6)
                 }
+                .padding()
             }
+            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Магазин")
+            .navigationBarTitleDisplayMode(.large)
         }
+    }
+}
+
+struct ShopItemCard: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let description: String
+    let stats: String
+    let cost: String
+    let canAfford: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 56, height: 56)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(iconColor)
+            }
+            
+            // Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                
+                Text(stats)
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(iconColor)
+                
+                Text(description)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+            
+            Spacer()
+            
+            // Buy Button
+            Button(action: action) {
+                VStack(spacing: 2) {
+                    Text("Купить")
+                        .font(.caption2.weight(.bold))
+                        .textCase(.uppercase)
+                    
+                    HStack(spacing: 2) {
+                        Image(systemName: "circle.circle.fill")
+                            .font(.system(size: 10))
+                        Text(cost)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(minWidth: 80)
+                .background(canAfford ? iconColor : Color(uiColor: .systemGray5))
+                .foregroundColor(canAfford ? .white : .secondary)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(!canAfford)
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .cornerRadius(16)
     }
 }

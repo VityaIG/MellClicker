@@ -36,5 +36,6 @@ struct ContentView: View {
                 .tag(TabItem.settings)
         }
         .tint(.orange)
+        .preferredColorScheme(viewModel.isDarkMode ? .dark : .light)
     }
 }

@@ -52,6 +52,12 @@ final class GameViewModel: ObservableObject {
         }
     }
     
+    @Published var isDarkMode: Bool {
+        didSet {
+            UserDefaults.standard.set(isDarkMode, forKey: Keys.isDarkMode)
+        }
+    }
+    
     // MARK: - Base Configuration Constants
     
     let baseChekushkaCost: Int = 100
@@ -94,6 +100,7 @@ final class GameViewModel: ObservableObject {
         static let chekunecCost = "mc_chekunecCost"
         static let isSoundEnabled = "mc_isSoundEnabled"
         static let isHapticsEnabled = "mc_isHapticsEnabled"
+        static let isDarkMode = "mc_isDarkMode"
     }
     
     private var timerSubscription: AnyCancellable?
@@ -111,6 +118,7 @@ final class GameViewModel: ObservableObject {
         
         self.isSoundEnabled = defaults.object(forKey: Keys.isSoundEnabled) != nil ? defaults.bool(forKey: Keys.isSoundEnabled) : true
         self.isHapticsEnabled = defaults.object(forKey: Keys.isHapticsEnabled) != nil ? defaults.bool(forKey: Keys.isHapticsEnabled) : true
+        self.isDarkMode = defaults.object(forKey: Keys.isDarkMode) != nil ? defaults.bool(forKey: Keys.isDarkMode) : true
         
         startAutoClickerTimer()
     }
