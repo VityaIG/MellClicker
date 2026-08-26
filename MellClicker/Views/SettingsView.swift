@@ -3,11 +3,60 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var viewModel: GameViewModel
     @State private var showResetConfirmation: Bool = false
+    @State private var showEditNameSheet: Bool = false
+    @State private var editedName: String = ""
+    @State private var nameError: String? = nil
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    
+                    // MARK: - Profile Section
+                    SettingsSection(title: "Профиль игрока") {
+                        VStack(spacing: 0) {
+                            Button(action: {
+                                editedName = viewModel.username
+                                nameError = nil
+                                showEditNameSheet = true
+                            }) {
+                                HStack(spacing: 16) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(viewModel.currentAccentColor)
+                                            .frame(width: 44, height: 44)
+                                        
+                                        Text(String(viewModel.effectiveUsername.prefix(1)).uppercased())
+                                            .font(.headline.weight(.bold))
+                                            .foregroundColor(viewModel.currentAccentTextColor)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack(spacing: 6) {
+                                            Text(viewModel.effectiveUsername)
+                                                .font(.headline.weight(.bold))
+                                                .foregroundColor(.primary)
+                                            
+                                            Image(systemName: "pencil.circle.fill")
+                                                .font(.subheadline)
+                                                .foregroundColor(viewModel.currentAccentColor)
+                                        }
+                                        
+                                        Text("Ранг в топе: #\(viewModel.userRank)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 10)
+                            }
+                        }
+                    }
                     
                     // MARK: - Control Section
                     SettingsSection(title: "Секция управления") {
@@ -21,7 +70,6 @@ struct SettingsView: View {
                             
                             Divider().padding(.leading, 50)
                             
-
                             SettingsToggle(
                                 icon: "iphone.radiowaves.left.and.right",
                                 color: .blue,
@@ -37,7 +85,15 @@ struct SettingsView: View {
                                 title: "Темная тема",
                                 isOn: $viewModel.isDarkMode
                             )
-
+                            
+                            Divider().padding(.leading, 50)
+                            
+                            SettingsPicker(
+                                icon: "paintpalette.fill",
+                                color: viewModel.currentAccentColor,
+                                title: "Цвет",
+                                selection: $viewModel.accentThemeRawValue
+                            )
                             
                             Divider().padding(.leading, 50)
                             
@@ -117,6 +173,73 @@ struct SettingsView: View {
             } message: {
                 Text("Вы уверены, что хотите обнулить весь баланс и прогресс? Это действие необратимо.")
             }
+            .sheet(isPresented: $showEditNameSheet) {
+                NavigationStack {
+                    VStack(spacing: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("ИМЯ ПОЛЬЗОВАТЕЛЯ")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(viewModel.currentAccentColor)
+                                
+                                TextField("Введите никнейм (или пусто)", text: $editedName)
+                                    .font(.body)
+                                    .autocorrectionDisabled(true)
+                                    .textInputAutocapitalization(.never)
+                                
+                                if !editedName.isEmpty {
+                                    Button(action: { editedName = "" }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(Color(uiColor: .secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                            
+                            if let error = nameError {
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            } else {
+                                Text("Если оставить пустым, будет отображаться «Игрок».")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding()
+                        
+                        Spacer()
+                    }
+                    .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+                    .navigationTitle("Сменить никнейм")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Отмена") {
+                                showEditNameSheet = false
+                            }
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Сохранить") {
+                                let trimmed = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if !trimmed.isEmpty && viewModel.isUsernameTaken(trimmed) {
+                                    nameError = "Этот никнейм уже занят другим игроком."
+                                } else {
+                                    viewModel.username = trimmed
+                                    showEditNameSheet = false
+                                }
+                            }
+                            .fontWeight(.bold)
+                        }
+                    }
+                }
+                .presentationDetents([.height(280)])
+            }
         }
     }
 }
@@ -183,5 +306,32 @@ struct SettingsInfoRow: View {
                 .font(.body)
         }
         .padding(.vertical, 12)
+    }
+}
+
+struct SettingsPicker: View {
+    let icon: String
+    let color: Color
+    let title: String
+    @Binding var selection: String
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundColor(color)
+                .frame(width: 32)
+            
+            Picker(title, selection: $selection) {
+                ForEach(AccentTheme.allCases) { theme in
+                    Text(theme.rawValue).tag(theme.rawValue)
+                }
+            }
+            .pickerStyle(MenuPickerStyle())
+            .tint(.primary)
+            
+            Spacer()
+        }
+        .padding(.vertical, 8)
     }
 }

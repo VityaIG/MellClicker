@@ -8,6 +8,7 @@ struct ContentView: View {
     enum TabItem: Int, CaseIterable {
         case clicker
         case shop
+        case leaderboard
         case settings
     }
     
@@ -28,14 +29,24 @@ struct ContentView: View {
                 .badge(viewModel.balance >= viewModel.chekushkaCost || viewModel.balance >= viewModel.chekunecCost ? Text("!") : nil)
                 .tag(TabItem.shop)
             
-            // Tab 3: Настройки
+            // Tab 3: Лидеры
+            LeaderboardView(viewModel: viewModel)
+                .tabItem {
+                    Label("Лидеры", systemImage: "trophy.fill")
+                }
+                .tag(TabItem.leaderboard)
+            
+            // Tab 4: Настройки
             SettingsView(viewModel: viewModel)
                 .tabItem {
                     Label("Настройки", systemImage: "gearshape.fill")
                 }
                 .tag(TabItem.settings)
         }
-        .tint(.orange)
+        .tint(viewModel.currentAccentColor)
         .preferredColorScheme(viewModel.isDarkMode ? .dark : .light)
+        .sheet(isPresented: $viewModel.showOnboarding) {
+            OnboardingView(viewModel: viewModel)
+        }
     }
 }

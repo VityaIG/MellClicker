@@ -51,7 +51,7 @@ struct ClickerView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "circle.circle.fill")
                                 .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(viewModel.currentAccentColor)
                             
                             Text(viewModel.formattedBalance)
                                 .font(.system(size: 46, weight: .heavy, design: .rounded))
@@ -71,7 +71,7 @@ struct ClickerView: View {
                             if viewModel.autoClickerCount > 0 {
                                 Label("+\(viewModel.passiveIncomePerSecond) / сек", systemImage: "bolt.fill")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(viewModel.currentAccentColor)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
                                     .background(.ultraThinMaterial, in: Capsule())
@@ -86,7 +86,7 @@ struct ClickerView: View {
                     ZStack {
                         // Ambient Glow Effect
                         Circle()
-                            .fill(Color.orange.opacity(0.4))
+                            .fill(viewModel.currentAccentColor.opacity(0.4))
                             .frame(width: 250, height: 250)
                             .blur(radius: isPressed ? 40 : 20)
                             .scaleEffect(isPressed ? 1.1 : 1.0)
@@ -95,7 +95,7 @@ struct ClickerView: View {
                         // Pulse animation for passive income indication
                         if viewModel.autoClickerCount > 0 {
                             Circle()
-                                .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+                                .stroke(viewModel.currentAccentColor.opacity(0.3), lineWidth: 2)
                                 .frame(width: 250, height: 250)
                                 .scaleEffect(glowPulse ? 1.4 : 1.0)
                                 .opacity(glowPulse ? 0 : 1)
@@ -110,8 +110,8 @@ struct ClickerView: View {
                         ForEach(floatingNumbers) { item in
                             Text(item.text)
                                 .font(.system(size: 28, weight: .black, design: .rounded))
-                                .foregroundColor(.orange)
-                                .shadow(color: .orange.opacity(0.5), radius: 8, x: 0, y: 0)
+                                .foregroundColor(viewModel.currentAccentColor)
+                                .shadow(color: viewModel.currentAccentColor.opacity(0.5), radius: 8, x: 0, y: 0)
                                 .offset(item.offset)
                                 .scaleEffect(item.scale)
                                 .opacity(item.opacity)
@@ -135,7 +135,7 @@ struct ClickerView: View {
                                         Circle()
                                             .strokeBorder(
                                                 LinearGradient(
-                                                    colors: [.orange, .yellow],
+                                                    colors: [viewModel.currentAccentColor, viewModel.currentAccentColor.opacity(0.7)],
                                                     startPoint: .topLeading,
                                                     endPoint: .bottomTrailing
                                                 ),

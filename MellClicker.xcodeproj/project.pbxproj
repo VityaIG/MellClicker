@@ -15,6 +15,8 @@
 		A10000062C70000100000001 /* ClickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000062C70000100000001 /* ClickerView.swift */; };
 		A10000072C70000100000001 /* ShopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000072C70000100000001 /* ShopView.swift */; };
 		A10000082C70000100000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000082C70000100000001 /* SettingsView.swift */; };
+		A100000C2C70000100000001 /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000D2C70000100000001 /* LeaderboardView.swift */; };
+		A100000D2C70000100000001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000E2C70000100000001 /* OnboardingView.swift */; };
 		A10000092C70000100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000092C70000100000001 /* Assets.xcassets */; };
 		A100000A2C70000100000001 /* tap.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = B100000A2C70000100000001 /* tap.mp3 */; };
 		A100000B2C70000100000001 /* chekunec.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = B100000B2C70000100000001 /* chekunec.mp3 */; };
@@ -30,6 +32,8 @@
 		B10000062C70000100000001 /* ClickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickerView.swift; sourceTree = "<group>"; };
 		B10000072C70000100000001 /* ShopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopView.swift; sourceTree = "<group>"; };
 		B10000082C70000100000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B100000D2C70000100000001 /* LeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardView.swift; sourceTree = "<group>"; };
+		B100000E2C70000100000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		B10000092C70000100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B100000A2C70000100000001 /* tap.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = tap.mp3; sourceTree = "<group>"; };
 		B100000B2C70000100000001 /* chekunec.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = chekunec.mp3; sourceTree = "<group>"; };
@@ -107,6 +111,8 @@
 				B10000062C70000100000001 /* ClickerView.swift */,
 				B10000072C70000100000001 /* ShopView.swift */,
 				B10000082C70000100000001 /* SettingsView.swift */,
+				B100000D2C70000100000001 /* LeaderboardView.swift */,
+				B100000E2C70000100000001 /* OnboardingView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -209,6 +215,8 @@
 				A10000062C70000100000001 /* ClickerView.swift in Sources */,
 				A10000072C70000100000001 /* ShopView.swift in Sources */,
 				A10000082C70000100000001 /* SettingsView.swift in Sources */,
+				A100000C2C70000100000001 /* LeaderboardView.swift in Sources */,
+				A100000D2C70000100000001 /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

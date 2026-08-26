@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import AudioToolbox
 import UIKit
 
 /// High-performance audio manager managing concurrent, low-latency audio playback
@@ -39,9 +40,13 @@ final class AudioManager: NSObject {
         if let tapURL = Bundle.main.url(forResource: "tap", withExtension: "mp3") {
             var pool: [AVAudioPlayer] = []
             for _ in 0..<tapPlayerPoolSize {
-                if let player = try? AVAudioPlayer(contentsOf: tapURL) {
+                do {
+                    let player = try AVAudioPlayer(contentsOf: tapURL)
+                    player.volume = 1.0
                     player.prepareToPlay()
                     pool.append(player)
+                } catch {
+                    print("Error: \(error)")
                 }
             }
             self.tapPlayers = pool
@@ -49,9 +54,13 @@ final class AudioManager: NSObject {
         
         // 2. Preload chekunec
         if let chekunecURL = Bundle.main.url(forResource: "chekunec", withExtension: "mp3") {
-            if let player = try? AVAudioPlayer(contentsOf: chekunecURL) {
+            do {
+                let player = try AVAudioPlayer(contentsOf: chekunecURL)
+                player.volume = 1.0
                 player.prepareToPlay()
                 self.chekunecPlayer = player
+            } catch {
+                print("Error: \(error)")
             }
         }
     }
@@ -60,7 +69,8 @@ final class AudioManager: NSObject {
     
     func playTap() {
         guard !tapPlayers.isEmpty else {
-            playDirect(resource: "tap")
+            // FALLBACK TO NATIVE IOS SOUND IF CUSTOM MP3 FAILS OR IS MISSING
+            AudioServicesPlaySystemSound(1104) 
             return
         }
         
@@ -70,7 +80,9 @@ final class AudioManager: NSObject {
         if player.isPlaying {
             player.currentTime = 0
         }
-        player.play()
+        if !player.play() {
+            AudioServicesPlaySystemSound(1104)
+        }
     }
     
     func playChekunec() {
@@ -78,9 +90,12 @@ final class AudioManager: NSObject {
             if player.isPlaying {
                 player.currentTime = 0
             }
-            player.play()
+            if !player.play() {
+                AudioServicesPlaySystemSound(1016)
+            }
         } else {
-            playDirect(resource: "chekunec")
+            // FALLBACK TO NATIVE IOS SOUND
+            AudioServicesPlaySystemSound(1016)
         }
     }
     

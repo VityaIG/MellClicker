@@ -15,7 +15,7 @@ struct ShopView: View {
                         
                         HStack(spacing: 8) {
                             Image(systemName: "circle.circle.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(viewModel.currentAccentColor)
                                 .font(.title)
                             
                             Text(viewModel.formattedBalance)
@@ -38,13 +38,14 @@ struct ShopView: View {
                         // Item 1: Chekushka
                         ShopItemCard(
                             icon: "hand.tap.fill",
-                            iconColor: .orange,
+                            iconColor: viewModel.currentAccentColor,
                             title: "Чекушка",
                             description: "Каждая покупка удваивает силу клика.",
                             stats: "Множитель: x\(viewModel.clickMultiplier) -> x\(viewModel.clickMultiplier * 2)",
                             cost: viewModel.formattedChekushkaCost,
                             canAfford: viewModel.balance >= viewModel.chekushkaCost,
-                            action: { viewModel.buyChekushka() }
+                            action: { viewModel.buyChekushka() },
+                            viewModel: viewModel
                         )
                         
                         // Item 2: Chekunec
@@ -56,7 +57,8 @@ struct ShopView: View {
                             stats: "Куплено: \(viewModel.autoClickerCount) шт. (+1/сек)",
                             cost: viewModel.formattedChekunecCost,
                             canAfford: viewModel.balance >= viewModel.chekunecCost,
-                            action: { viewModel.buyChekunec() }
+                            action: { viewModel.buyChekunec() },
+                            viewModel: viewModel
                         )
                     }
                 }
@@ -70,6 +72,7 @@ struct ShopView: View {
 }
 
 struct ShopItemCard: View {
+    @ObservedObject var viewModel: GameViewModel
     let icon: String
     let iconColor: Color
     let title: String
@@ -129,7 +132,7 @@ struct ShopItemCard: View {
                 .padding(.vertical, 8)
                 .frame(minWidth: 80)
                 .background(canAfford ? iconColor : Color(uiColor: .systemGray5))
-                .foregroundColor(canAfford ? .white : .secondary)
+                .foregroundColor(canAfford ? viewModel.currentAccentTextColor : .secondary)
                 .clipShape(Capsule())
             }
             .buttonStyle(PlainButtonStyle())
