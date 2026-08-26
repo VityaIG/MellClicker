@@ -35,11 +35,12 @@ jobs:
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -derivedDataPath build/DerivedData \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            COMPILER_INDEX_STORE_ENABLE=NO
+            COMPILER_INDEX_STORE_ENABLE=NO > build.log 2>&1 || (echo "=== BUILD FAILED ===" && grep -A 5 -B 5 -i "error:" build.log && exit 1)
 
       - name: Package App into .ipa
         run: |
