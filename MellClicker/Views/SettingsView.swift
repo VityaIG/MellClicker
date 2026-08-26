@@ -92,6 +92,15 @@ struct SettingsView: View {
                                 Divider().padding(.leading, 50)
                                 
                                 SettingsToggle(
+                                    icon: "bolt.badge.clock.fill",
+                                    color: .orange,
+                                    title: "Панель комбо (Combo HUD)",
+                                    isOn: $viewModel.showComboHUD
+                                )
+                                
+                                Divider().padding(.leading, 50)
+                                
+                                SettingsToggle(
                                     icon: viewModel.isDarkMode ? "moon.fill" : "sun.max.fill",
                                     color: .purple,
                                     title: "Темная тема",

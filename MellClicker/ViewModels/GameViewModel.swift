@@ -116,6 +116,12 @@ final class GameViewModel: ObservableObject {
         }
     }
     
+    @Published var showComboHUD: Bool {
+        didSet {
+            UserDefaults.standard.set(showComboHUD, forKey: Keys.showComboHUD)
+        }
+    }
+    
     @Published var isDarkMode: Bool {
         didSet {
             UserDefaults.standard.set(isDarkMode, forKey: Keys.isDarkMode)
@@ -283,6 +289,7 @@ final class GameViewModel: ObservableObject {
         static let autoClickerCount = "mc_autoClickerCount"
         static let chekunecCost = "mc_chekunecCost"
         static let isHapticsEnabled = "mc_isHapticsEnabled"
+        static let showComboHUD = "mc_showComboHUD"
         static let isDarkMode = "mc_isDarkMode"
         static let accentTheme = "mc_accentTheme"
         static let username = "mc_username"
@@ -324,6 +331,7 @@ final class GameViewModel: ObservableObject {
         self.totalPassiveEarned = defaults.integer(forKey: Keys.totalPassiveEarned)
         
         self.isHapticsEnabled = defaults.object(forKey: Keys.isHapticsEnabled) != nil ? defaults.bool(forKey: Keys.isHapticsEnabled) : true
+        self.showComboHUD = defaults.object(forKey: Keys.showComboHUD) != nil ? defaults.bool(forKey: Keys.showComboHUD) : true
         self.isDarkMode = defaults.object(forKey: Keys.isDarkMode) != nil ? defaults.bool(forKey: Keys.isDarkMode) : true
         self.accentThemeRawValue = defaults.string(forKey: Keys.accentTheme) ?? AccentTheme.orange.rawValue
         self.customServerURL = defaults.string(forKey: Keys.customServerURL) ?? ""

@@ -48,6 +48,9 @@ export default function App() {
 
   // Stats & Combo
   const [combo, setCombo] = useState<number>(0);
+  const [showComboHUD, setShowComboHUD] = useState<boolean>(() => {
+    return localStorage.getItem('mc_web_showComboHUD') !== 'false';
+  });
   const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
   const [isClicking, setIsClicking] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'game' | 'leaderboard'>('game');
@@ -263,14 +266,33 @@ export default function App() {
           </div>
         </div>
 
-        <button
-          id="sound-toggle-button"
-          onClick={() => setIsSoundEnabled(!isSoundEnabled)}
-          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-          title={isSoundEnabled ? 'Выключить звук' : 'Включить звук'}
-        >
-          {isSoundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            id="combo-hud-toggle-button"
+            onClick={() => {
+              const next = !showComboHUD;
+              setShowComboHUD(next);
+              localStorage.setItem('mc_web_showComboHUD', next.toString());
+            }}
+            className={`p-2 rounded-xl border transition-colors ${
+              showComboHUD
+                ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                : 'bg-slate-800 border-slate-700 text-slate-500'
+            }`}
+            title={showComboHUD ? 'Скрыть Combo HUD' : 'Показать Combo HUD'}
+          >
+            <Flame className="w-4 h-4" />
+          </button>
+          
+          <button
+            id="sound-toggle-button"
+            onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+            title={isSoundEnabled ? 'Выключить звук' : 'Включить звук'}
+          >
+            {isSoundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+          </button>
+        </div>
       </header>
 
       {/* Navigation Tabs */}
@@ -326,7 +348,7 @@ export default function App() {
             </div>
 
             {/* Dynamic Combo & Frenzy HUD Bar */}
-            {combo > 0 ? (
+            {combo > 0 && showComboHUD ? (
               <div className="w-full mb-4 p-3 rounded-2xl bg-slate-950/70 border border-orange-500/40 shadow-lg shadow-orange-500/10 flex flex-col gap-2 transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
