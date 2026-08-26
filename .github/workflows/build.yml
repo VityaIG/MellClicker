@@ -30,6 +30,9 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Restore Binary Images
+        run: bash restore_images.sh
+
       - name: Build iOS App
         run: |
           xcodebuild clean build \
