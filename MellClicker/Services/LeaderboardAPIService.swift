@@ -31,73 +31,103 @@ struct ServerLeaderboardItem: Codable {
 final class LeaderboardAPIService {
     static let shared = LeaderboardAPIService()
     
-    // Default server endpoint (supports live cloud backend and local development)
-    private var baseURLString: String {
-        // Reads custom server URL from UserDefaults if set by user or defaults to the official live cloud instance
-        if let customURL = UserDefaults.standard.string(forKey: "mc_custom_server_url"), !customURL.isEmpty {
-            return customURL
+    // Candidate backend server hosts for high-availability synchronization
+    private var candidateHosts: [String] {
+        var hosts: [String] = []
+        
+        // 1. User-customized server endpoint if specified in Settings
+        if let custom = UserDefaults.standard.string(forKey: "mc_custom_server_url"),
+           !custom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            hosts.append(custom.trimmingCharacters(in: .whitespacesAndNewlines))
         }
-        return "https://ais-pre-fr25lodey44lr32qocqq4y-550830551338.europe-west2.run.app"
+        
+        // 2. Production & Preview Live Cloud Server instances
+        hosts.append("https://ais-pre-fr25lodey44lr32qocqq4y-550830551338.europe-west2.run.app")
+        hosts.append("https://ais-dev-fr25lodey44lr32qocqq4y-550830551338.europe-west2.run.app")
+        hosts.append("http://localhost:3000")
+        
+        return hosts
     }
     
     private init() {}
     
+    // MARK: - Ping / Diagnostics
+    
+    func pingServer() async -> (isOnline: Bool, latencyMs: Int, host: String) {
+        let hosts = candidateHosts
+        for host in hosts {
+            guard let url = URL(string: "\(host)/api/health") else { continue }
+            let startTime = CFAbsoluteTimeGetCurrent()
+            var req = URLRequest(url: url)
+            req.httpMethod = "GET"
+            req.timeoutInterval = 3.0
+            
+            do {
+                let (_, response) = try await URLSession.shared.data(for: req)
+                if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) {
+                    let elapsed = Int((CFAbsoluteTimeGetCurrent() - startTime) * 1000)
+                    return (true, elapsed, host)
+                }
+            } catch {
+                continue
+            }
+        }
+        return (false, 0, "")
+    }
+    
     // MARK: - Fetch Global Online Leaderboard
     
     func fetchOnlineLeaderboard() async throws -> [LeaderboardEntry] {
-        guard let url = URL(string: "\(baseURLString)/api/leaderboard") else {
-            throw URLError(.badURL)
+        var lastError: Error = URLError(.cannotConnectToHost)
+        
+        for host in candidateHosts {
+            guard let url = URL(string: "\(host)/api/leaderboard") else { continue }
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.timeoutInterval = 4.0
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                    continue
+                }
+                
+                let decoded = try JSONDecoder().decode(ServerLeaderboardResponse.self, from: data)
+                guard decoded.success else { continue }
+                
+                return decoded.leaderboard.map { item in
+                    LeaderboardEntry(
+                        id: item.id,
+                        name: item.name,
+                        score: item.score,
+                        isUser: false,
+                        avatarColorHex: item.avatarColorHex
+                    )
+                }
+            } catch {
+                lastError = error
+                continue
+            }
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 8.0
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-        
-        let decoded = try JSONDecoder().decode(ServerLeaderboardResponse.self, from: data)
-        guard decoded.success else {
-            throw URLError(.cannotParseResponse)
-        }
-        
-        return decoded.leaderboard.map { item in
-            LeaderboardEntry(
-                id: UUID(uuidString: item.id) ?? UUID(),
-                name: item.name,
-                score: item.score,
-                isUser: false,
-                avatarColorHex: item.avatarColorHex
-            )
-        }
+        throw lastError
     }
     
-    // MARK: - Submit Player Score to Online Database
+    // MARK: - Submit Player Score to Online DB
     
     func submitPlayerScore(
-        playerId: UUID,
+        playerId: String,
         name: String,
         score: Int,
         clicks: Int,
         passiveIncome: Int,
         avatarColorHex: String
-    ) async throws -> (userRank: Int, entries: [LeaderboardEntry]) {
-        guard let url = URL(string: "\(baseURLString)/api/leaderboard/submit") else {
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 8.0
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
+    ) async throws -> (rank: Int, entries: [LeaderboardEntry]) {
+        var lastError: Error = URLError(.cannotConnectToHost)
         
         let payload: [String: Any] = [
-            "id": playerId.uuidString,
+            "id": playerId,
             "name": name,
             "score": score,
             "clicks": clicks,
@@ -105,29 +135,46 @@ final class LeaderboardAPIService {
             "avatarColorHex": avatarColorHex
         ]
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
+            throw URLError(.badURL)
         }
         
-        let decoded = try JSONDecoder().decode(ServerSubmitResponse.self, from: data)
-        guard decoded.success else {
-            throw URLError(.cannotParseResponse)
+        for host in candidateHosts {
+            guard let url = URL(string: "\(host)/api/leaderboard/submit") else { continue }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.timeoutInterval = 4.0
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.httpBody = jsonData
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                    continue
+                }
+                
+                let decoded = try JSONDecoder().decode(ServerSubmitResponse.self, from: data)
+                guard decoded.success else { continue }
+                
+                let userRank = decoded.userRank ?? 1
+                let list = decoded.leaderboard.map { item in
+                    LeaderboardEntry(
+                        id: item.id,
+                        name: item.name,
+                        score: item.score,
+                        isUser: item.id == playerId,
+                        avatarColorHex: item.avatarColorHex
+                    )
+                }
+                
+                return (userRank, list)
+            } catch {
+                lastError = error
+                continue
+            }
         }
         
-        let entries = decoded.leaderboard.map { item in
-            LeaderboardEntry(
-                id: UUID(uuidString: item.id) ?? UUID(),
-                name: item.name,
-                score: item.score,
-                isUser: item.id == playerId.uuidString,
-                avatarColorHex: item.avatarColorHex
-            )
-        }
-        
-        return (decoded.userRank ?? 1, entries)
+        throw lastError
     }
 }

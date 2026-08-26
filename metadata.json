@@ -1,6 +1,6 @@
 {
   "name": "MellClicker",
-  "description": "Нативная игра-кликер MellClicker для iOS на SwiftUI с аудиоэффектами, магазином улучшений и оформлением в стиле Apple HIG. Релиз 1.0.0.",
+  "description": "Нативная игра-кликер MellClicker для iOS на SwiftUI с анимированным фоном, онлайн базой данных лидеров и магазином улучшений в стиле Apple HIG.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -18,116 +18,126 @@ struct LeaderboardView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    
-                    // MARK: - Online Sync Status Banner
-                    HStack {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(viewModel.leaderboardSyncStatus.contains("Автономно") ? Color.orange : Color.green)
-                                .frame(width: 8, height: 8)
-                            Text(viewModel.leaderboardSyncStatus)
-                                .font(.caption.weight(.medium))
-                                .foregroundColor(.secondary)
-                        }
+            ZStack {
+                AnimatedBackgroundView(viewModel: viewModel)
+                
+                ScrollView {
+                    VStack(spacing: 18) {
                         
-                        Spacer()
-                        
-                        Button {
-                            Task {
-                                await viewModel.refreshOnlineLeaderboard()
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                if viewModel.isSyncingLeaderboard {
-                                    ProgressView()
-                                        .scaleEffect(0.7)
-                                } else {
-                                    Image(systemName: "arrow.clockwise")
-                                        .font(.caption.weight(.bold))
-                                }
-                                Text("Обновить")
-                                    .font(.caption.weight(.semibold))
-                            }
-                            .foregroundColor(viewModel.currentAccentColor)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(viewModel.currentAccentColor.opacity(0.12))
-                            .clipShape(Capsule())
-                        }
-                        .disabled(viewModel.isSyncingLeaderboard)
-                    }
-                    .padding(.horizontal, 4)
-                    
-                    // MARK: - User Status Card
-                    UserRankBanner(
-                        viewModel: viewModel,
-                        rank: viewModel.userRank,
-                        name: viewModel.effectiveUsername,
-                        score: viewModel.formattedBalance
-                    )
-                    
-                    // MARK: - Top 3 Podium (if not searching and 3+ players)
-                    if searchText.isEmpty && sortedEntries.count >= 3 {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("ТОП ИГРОКОВ")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 4)
-                            
-                            TopThreePodium(
-                                first: sortedEntries[0],
-                                second: sortedEntries[1],
-                                third: sortedEntries[2],
-                                viewModel: viewModel
-                            )
-                        }
-                    }
-                    
-                    // MARK: - Rankings List
-                    VStack(alignment: .leading, spacing: 12) {
+                        // MARK: - Online Sync Status Banner
                         HStack {
-                            Text(searchText.isEmpty ? "ТАБЛИЦА РЕКОРДОВ" : "РЕЗУЛЬТАТЫ ПОИСКА")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.secondary)
+                            HStack(spacing: 8) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.green.opacity(0.3))
+                                        .frame(width: 14, height: 14)
+                                    
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 8, height: 8)
+                                }
+                                
+                                Text(viewModel.leaderboardSyncStatus)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.primary)
+                            }
                             
                             Spacer()
                             
-                            Text("Онлайн игроков: \(sortedEntries.count)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            Button {
+                                Task {
+                                    await viewModel.refreshOnlineLeaderboard()
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if viewModel.isSyncingLeaderboard {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                    } else {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.caption.weight(.bold))
+                                    }
+                                    Text("Обновить")
+                                        .font(.caption.weight(.semibold))
+                                }
+                                .foregroundColor(viewModel.currentAccentColor)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(viewModel.currentAccentColor.opacity(0.12))
+                                .clipShape(Capsule())
+                            }
+                            .disabled(viewModel.isSyncingLeaderboard)
                         }
-                        .padding(.horizontal, 4)
+                        .padding(.horizontal, 6)
                         
-                        if filteredEntries.isEmpty {
-                            VStack(spacing: 12) {
-                                Image(systemName: "person.slash")
-                                    .font(.system(size: 36))
+                        // MARK: - User Status Card
+                        UserRankBanner(
+                            viewModel: viewModel,
+                            rank: viewModel.userRank,
+                            name: viewModel.effectiveUsername,
+                            score: viewModel.formattedBalance
+                        )
+                        
+                        // MARK: - Top 3 Podium (if not searching and 3+ players)
+                        if searchText.isEmpty && sortedEntries.count >= 3 {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("ТОП ИГРОКОВ ОНЛАЙН")
+                                    .font(.caption.weight(.bold))
                                     .foregroundColor(.secondary)
-                                Text("Игроки не найдены")
-                                    .font(.subheadline)
+                                    .padding(.horizontal, 4)
+                                
+                                TopThreePodium(
+                                    first: sortedEntries[0],
+                                    second: sortedEntries[1],
+                                    third: sortedEntries[2],
+                                    viewModel: viewModel
+                                )
+                            }
+                        }
+                        
+                        // MARK: - Rankings List
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text(searchText.isEmpty ? "ТАБЛИЦА РЕЙТИНГА" : "РЕЗУЛЬТАТЫ ПОИСКА")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                                
+                                Text("Всего игроков: \(sortedEntries.count)")
+                                    .font(.caption.weight(.medium))
                                     .foregroundColor(.secondary)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 40)
-                        } else {
-                            VStack(spacing: 8) {
-                                ForEach(Array(filteredEntries.enumerated()), id: \.element.id) { index, entry in
-                                    // Find actual global rank in sorted array
-                                    let actualRank = (sortedEntries.firstIndex(where: { $0.id == entry.id }) ?? index) + 1
-                                    
-                                    LeaderboardRow(
-                                        rank: actualRank,
-                                        entry: entry,
-                                        viewModel: viewModel
-                                    )
+                            .padding(.horizontal, 4)
+                            
+                            if filteredEntries.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "person.slash")
+                                        .font(.system(size: 36))
+                                        .foregroundColor(.secondary)
+                                    Text("Игроки не найдены")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                            } else {
+                                VStack(spacing: 8) {
+                                    ForEach(Array(filteredEntries.enumerated()), id: \.element.id) { index, entry in
+                                        let actualRank = (sortedEntries.firstIndex(where: { $0.id == entry.id }) ?? index) + 1
+                                        
+                                        LeaderboardRow(
+                                            rank: actualRank,
+                                            entry: entry,
+                                            viewModel: viewModel
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                    .padding()
                 }
-                .padding()
             }
             .refreshable {
                 await viewModel.refreshOnlineLeaderboard()
@@ -136,7 +146,6 @@ struct LeaderboardView: View {
                 await viewModel.refreshOnlineLeaderboard()
             }
             .searchable(text: $searchText, prompt: "Поиск по игрокам")
-            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Таблица лидеров")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -153,27 +162,21 @@ private struct UserRankBanner: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Rank badge
             ZStack {
                 Circle()
                     .fill(viewModel.currentAccentColor)
                     .frame(width: 52, height: 52)
+                    .shadow(color: viewModel.currentAccentColor.opacity(0.35), radius: 6, x: 0, y: 3)
                 
-                VStack(spacing: 0) {
-                    Text("#\(rank)")
-                        .font(.system(size: 18, weight: .heavy, design: .rounded))
-                        .foregroundColor(viewModel.currentAccentTextColor)
-                    Text("РАНГ")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(viewModel.currentAccentTextColor.opacity(0.8))
-                }
+                Text(String(name.prefix(1)).uppercased())
+                    .font(.title3.weight(.black))
+                    .foregroundColor(viewModel.currentAccentTextColor)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(name)
                         .font(.headline.weight(.bold))
-                        .lineLimit(1)
                     
                     Text("ВЫ")
                         .font(.system(size: 10, weight: .black))
@@ -184,47 +187,41 @@ private struct UserRankBanner: View {
                         .clipShape(Capsule())
                 }
                 
-                HStack(spacing: 4) {
-                    Image(systemName: "circle.circle.fill")
-                        .font(.caption)
-                        .foregroundColor(viewModel.currentAccentColor)
-                    Text("\(score) монет")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.secondary)
-                }
+                Text(viewModel.playerRankTitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
             
-            if viewModel.passiveIncomePerSecond > 0 {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("ДОХОД")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.secondary)
-                    Text("+\(viewModel.passiveIncomePerSecond)/с")
-                        .font(.subheadline.weight(.bold))
+            VStack(alignment: .trailing, spacing: 2) {
+                HStack(spacing: 4) {
+                    Image(systemName: "circle.circle.fill")
+                        .font(.caption.weight(.bold))
                         .foregroundColor(viewModel.currentAccentColor)
+                    Text(score)
+                        .font(.headline.weight(.heavy))
+                        .foregroundColor(.primary)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color(uiColor: .tertiarySystemGroupedBackground))
-                .cornerRadius(10)
+                
+                Text("Ранг #\(rank)")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(viewModel.currentAccentColor)
             }
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.9))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(viewModel.currentAccentColor.opacity(0.4), lineWidth: 1.5)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(viewModel.currentAccentColor.opacity(0.4), lineWidth: 1.5)
                 )
-                .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 4)
         )
     }
 }
 
-// MARK: - Top 3 Podium
+// MARK: - Top Three Podium
 
 private struct TopThreePodium: View {
     let first: LeaderboardEntry
@@ -234,33 +231,33 @@ private struct TopThreePodium: View {
     
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            // 2nd Place
+            // Rank 2: Silver
             PodiumColumn(
-                rank: 2,
                 entry: second,
-                medal: "🥈",
-                badgeColor: Color(uiColor: .systemGray2),
-                height: 140,
-                viewModel: viewModel
-            )
-            
-            // 1st Place
-            PodiumColumn(
-                rank: 1,
-                entry: first,
-                medal: "👑",
-                badgeColor: Color.yellow,
-                height: 165,
-                viewModel: viewModel
-            )
-            
-            // 3rd Place
-            PodiumColumn(
-                rank: 3,
-                entry: third,
-                medal: "🥉",
-                badgeColor: Color.orange.opacity(0.8),
+                rank: 2,
                 height: 120,
+                color: Color(red: 0.75, green: 0.75, blue: 0.78),
+                badgeIcon: "🥈",
+                viewModel: viewModel
+            )
+            
+            // Rank 1: Gold (Highest)
+            PodiumColumn(
+                entry: first,
+                rank: 1,
+                height: 145,
+                color: Color(red: 1.0, green: 0.84, blue: 0.0),
+                badgeIcon: "👑",
+                viewModel: viewModel
+            )
+            
+            // Rank 3: Bronze
+            PodiumColumn(
+                entry: third,
+                rank: 3,
+                height: 100,
+                color: Color(red: 0.80, green: 0.50, blue: 0.20),
+                badgeIcon: "🥉",
                 viewModel: viewModel
             )
         }
@@ -269,73 +266,61 @@ private struct TopThreePodium: View {
 }
 
 private struct PodiumColumn: View {
-    let rank: Int
     let entry: LeaderboardEntry
-    let medal: String
-    let badgeColor: Color
+    let rank: Int
     let height: CGFloat
+    let color: Color
+    let badgeIcon: String
     @ObservedObject var viewModel: GameViewModel
     
     var body: some View {
-        VStack(spacing: 8) {
-            // Medal / Crown
-            Text(medal)
-                .font(.system(size: rank == 1 ? 28 : 22))
+        VStack(spacing: 6) {
+            Text(badgeIcon)
+                .font(.system(size: rank == 1 ? 26 : 22))
             
-            // Avatar
             ZStack {
                 Circle()
-                    .fill(Color(hex: entry.avatarColorHex) ?? .gray)
-                    .frame(width: rank == 1 ? 52 : 44, height: rank == 1 ? 52 : 44)
+                    .fill(Color(hex: entry.avatarColorHex) ?? viewModel.currentAccentColor)
+                    .frame(width: rank == 1 ? 46 : 40, height: rank == 1 ? 46 : 40)
+                    .shadow(color: color.opacity(0.4), radius: 6, x: 0, y: 3)
                 
                 Text(String(entry.name.prefix(1)).uppercased())
-                    .font(.system(size: rank == 1 ? 20 : 16, weight: .bold))
+                    .font(.system(size: rank == 1 ? 16 : 14, weight: .bold))
                     .foregroundColor(.white)
             }
             
-            // Name
             Text(entry.name)
-                .font(.caption.weight(.bold))
+                .font(.system(size: 11, weight: .bold))
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .foregroundColor(.primary)
             
-            // Score
-            HStack(spacing: 2) {
-                Image(systemName: "circle.circle.fill")
-                    .font(.system(size: 9))
-                    .foregroundColor(viewModel.currentAccentColor)
-                Text(formatCompact(entry.score))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.secondary)
-            }
+            Text("\(viewModel.formatNumber(entry.score))")
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .foregroundColor(color)
+                .lineLimit(1)
             
-            // Podium base
+            // Pillar box
             ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [color.opacity(0.25), color.opacity(0.1)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(entry.isUser ? viewModel.currentAccentColor : Color.clear, lineWidth: 1.5)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(color.opacity(0.4), lineWidth: 1)
                     )
                 
                 Text("#\(rank)")
-                    .font(.system(size: 20, weight: .heavy, design: .rounded))
-                    .foregroundColor(badgeColor)
+                    .font(.system(size: 20, weight: .black, design: .rounded))
+                    .foregroundColor(color)
             }
-            .frame(height: height * 0.4)
+            .frame(height: height)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-    }
-    
-    private func formatCompact(_ score: Int) -> String {
-        if score >= 1_000_000 {
-            return String(format: "%.1fM", Double(score) / 1_000_000.0)
-        } else if score >= 1_000 {
-            return String(format: "%.1fK", Double(score) / 1_000.0)
-        } else {
-            return "\(score)"
-        }
     }
 }
 
@@ -346,55 +331,51 @@ private struct LeaderboardRow: View {
     let entry: LeaderboardEntry
     @ObservedObject var viewModel: GameViewModel
     
-    var rankColor: Color {
-        switch rank {
-        case 1: return .yellow
-        case 2: return Color(uiColor: .systemGray2)
-        case 3: return .orange
-        default: return .secondary
-        }
-    }
-    
     var body: some View {
         HStack(spacing: 14) {
             // Rank Number
-            Text("\(rank)")
-                .font(.system(size: 16, weight: .heavy, design: .rounded))
-                .foregroundColor(rankColor)
-                .frame(width: 32, alignment: .center)
+            ZStack {
+                if rank <= 3 {
+                    Circle()
+                        .fill(rankColor(rank).opacity(0.2))
+                        .frame(width: 28, height: 28)
+                }
+                
+                Text("#\(rank)")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundColor(rankColor(rank))
+            }
+            .frame(width: 32)
             
             // Avatar
             ZStack {
                 Circle()
-                    .fill(Color(hex: entry.avatarColorHex) ?? .gray)
-                    .frame(width: 40, height: 40)
+                    .fill(Color(hex: entry.avatarColorHex) ?? viewModel.currentAccentColor)
+                    .frame(width: 38, height: 38)
                 
                 Text(String(entry.name.prefix(1)).uppercased())
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
             }
             
-            // Player info
+            // Name
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(entry.name)
-                        .font(.body.weight(.semibold))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.primary)
                         .lineLimit(1)
                     
-                    if entry.isUser {
+                    if entry.isUser || entry.id == viewModel.playerId {
                         Text("ВЫ")
                             .font(.system(size: 9, weight: .black))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
                             .background(viewModel.currentAccentColor.opacity(0.2))
                             .foregroundColor(viewModel.currentAccentColor)
                             .clipShape(Capsule())
                     }
                 }
-                
-                Text(rankSubtitle(for: rank))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
             }
             
             Spacer()
@@ -402,38 +383,48 @@ private struct LeaderboardRow: View {
             // Score
             HStack(spacing: 4) {
                 Image(systemName: "circle.circle.fill")
-                    .font(.caption2)
+                    .font(.system(size: 11))
                     .foregroundColor(viewModel.currentAccentColor)
+                
                 Text(viewModel.formatNumber(entry.score))
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .lineLimit(1)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(entry.isUser ? viewModel.currentAccentColor.opacity(0.08) : Color(uiColor: .secondarySystemGroupedBackground))
+                .fill(
+                    (entry.isUser || entry.id == viewModel.playerId)
+                        ? viewModel.currentAccentColor.opacity(0.12)
+                        : Color(uiColor: .secondarySystemGroupedBackground).opacity(0.85)
+                )
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(entry.isUser ? viewModel.currentAccentColor.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                        .strokeBorder(
+                            (entry.isUser || entry.id == viewModel.playerId)
+                                ? viewModel.currentAccentColor.opacity(0.4)
+                                : Color.clear,
+                            lineWidth: 1.5
+                        )
                 )
         )
     }
     
-    private func rankSubtitle(for rank: Int) -> String {
+    private func rankColor(_ rank: Int) -> Color {
         switch rank {
-        case 1: return "Абсолютный чемпион"
-        case 2...3: return "Мастер кликов"
-        case 4...10: return "Элитный кликер"
-        default: return "Участник"
+        case 1: return Color(red: 1.0, green: 0.84, blue: 0.0) // Gold
+        case 2: return Color(red: 0.75, green: 0.75, blue: 0.78) // Silver
+        case 3: return Color(red: 0.80, green: 0.50, blue: 0.20) // Bronze
+        default: return .secondary
         }
     }
 }
 
 // MARK: - Color Hex Helper
 
-private extension Color {
+extension Color {
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
@@ -441,10 +432,10 @@ private extension Color {
         var rgb: UInt64 = 0
         guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else { return nil }
         
-        let r = Double((rgb & 0xFF0000) >> 16) / 255.0
-        let g = Double((rgb & 0x00FF00) >> 8) / 255.0
-        let b = Double(rgb & 0x0000FF) / 255.0
+        let red = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let green = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let blue = Double(rgb & 0x0000FF) / 255.0
         
-        self.init(red: r, green: g, blue: b)
+        self.init(red: red, green: green, blue: blue)
     }
 }
