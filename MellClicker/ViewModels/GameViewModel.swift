@@ -491,4 +491,15 @@ final class GameViewModel: ObservableObject {
             HapticManager.shared.resetFeedback()
         }
     }
+    
+    /// Completes the onboarding flow and stores the user's selected username
+    func finishOnboarding(withName name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.username = trimmed
+        self.hasCompletedOnboarding = true
+        self.showOnboarding = false
+        
+        syncUserEntryInLeaderboard()
+        saveLeaderboard()
+    }
 }
