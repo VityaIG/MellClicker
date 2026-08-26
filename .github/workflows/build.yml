@@ -33,15 +33,15 @@ jobs:
       - name: Restore Binary Images
         run: python3 restore_images.py
 
-      - name: Build iOS App
+      - name: Build iOS App Archive
         run: |
-          xcodebuild clean build \
+          xcodebuild clean archive \
             -project MellClicker.xcodeproj \
             -scheme MellClicker \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -derivedDataPath build/DerivedData \
+            -archivePath build/MellClicker.xcarchive \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -49,38 +49,41 @@ jobs:
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             COMPILER_INDEX_STORE_ENABLE=NO > build.log 2>&1 || (echo "=== BUILD FAILED ===" && grep -A 5 -B 5 -i "error:" build.log && exit 1)
 
-      - name: Package App into .ipa
+      - name: Package App into Sideload-Ready .ipa
         run: |
           mkdir -p build/Payload
-          APP_PATH=$(find build/DerivedData/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1 -type d | head -n 1)
+          APP_PATH=$(find build -name "MellClicker.app" -type d | head -n 1)
           if [ -z "$APP_PATH" ]; then
             echo "Error: MellClicker.app not found!"
             exit 1
           fi
           echo "Found app at: $APP_PATH"
           
-          # 1. Очищаем все скрытые атрибуты macOS (xattr) и мусорные файлы, которые ломают подпись
-          xattr -cr "$APP_PATH"
+          # 1. Очистка системных мусорных файлов и расширенных атрибутов macOS (xattr)
+          xattr -cr "$APP_PATH" || true
           find "$APP_PATH" -name ".DS_Store" -delete || true
           find "$APP_PATH" -name "._*" -delete || true
           
-          # 2. Копируем в Payload
-          ditto "$APP_PATH" "build/Payload/$(basename "$APP_PATH")"
+          # 2. Копирование бандла приложения в Payload
+          cp -R "$APP_PATH" "build/Payload/MellClicker.app"
           
-          # 3. Дополнительно очищаем Payload и выставляем корректные POSIX права доступа
-          xattr -cr "build/Payload"
+          # 3. Выставление корректных POSIX прав (исполняемый файл обязателен для подписи)
+          chmod +x "build/Payload/MellClicker.app/MellClicker" || true
           chmod -R 755 "build/Payload"
           
-          # 4. Удаляем старую сигнатуру и выполняем чистую Ad-Hoc подпись без таймстемпов
-          rm -rf "build/Payload/$(basename "$APP_PATH")/_CodeSignature"
-          codesign --force --sign - --timestamp=none "build/Payload/$(basename "$APP_PATH")"
+          # 4. Удаление старых или поврежденных сигнатур и профилей
+          rm -rf "build/Payload/MellClicker.app/_CodeSignature"
+          rm -f "build/Payload/MellClicker.app/embedded.mobileprovision"
           
-          # 5. Проверяем валидность подписи
-          codesign --verify --verbose "build/Payload/$(basename "$APP_PATH")" || true
+          # 5. Ad-Hoc подпись с поддержкой DER-энтайтлментов (требование iOS 15+)
+          codesign --force --deep --sign - --timestamp=none --generate-entitlement-der "build/Payload/MellClicker.app"
+          
+          # 6. Проверка валидности структуры подписи
+          codesign --verify --deep --verbose "build/Payload/MellClicker.app" || true
           
           cd build
-          # 6. Упаковываем в чистый zip/ipa с сохранением прав и ссылок
-          zip -qry MellClicker.ipa Payload
+          # 7. Упаковка в стандартизированный zip-архив .ipa
+          zip -qry9 MellClicker.ipa Payload
           echo "Successfully created MellClicker.ipa"
 
       - name: Upload IPA Artifact
