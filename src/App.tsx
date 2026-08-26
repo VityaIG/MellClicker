@@ -179,30 +179,30 @@ export default function App() {
     setIsClicking(true);
     playSound('tap');
 
-    // Button tilt calculation
+    // Subtle restrained tilt within 4 degrees max to avoid displacement
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 15;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -15;
-    setButtonTilt({ x: y, y: x });
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 6;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -6;
+    setButtonTilt({ x: Math.max(-5, Math.min(5, y)), y: Math.max(-5, Math.min(5, x)) });
 
     // Floating text particle
     const newItem = {
       id: Date.now() + Math.random(),
       text: isFrenzy ? `+${effectivePower} 🔥` : `+${effectivePower}`,
-      x: (Math.random() - 0.5) * 60,
-      y: (Math.random() - 0.5) * 20,
+      x: (Math.random() - 0.5) * 50,
+      y: (Math.random() - 0.5) * 15,
       isFrenzy
     };
-    setFloatingItems(prev => [...prev.slice(-6), newItem]);
+    setFloatingItems(prev => [...prev.slice(-5), newItem]);
 
     setTimeout(() => {
       setIsClicking(false);
       setButtonTilt({ x: 0, y: 0 });
-    }, 100);
+    }, 90);
 
     setTimeout(() => {
       setFloatingItems(prev => prev.filter(item => item.id !== newItem.id));
-    }, 600);
+    }, 550);
   };
 
   const buyChekushka = () => {

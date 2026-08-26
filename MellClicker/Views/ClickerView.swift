@@ -375,15 +375,17 @@ struct ClickerView: View {
         
         viewModel.click()
         
-        isPressed = true
-        withAnimation(.easeInOut(duration: 0.05)) {
-            buttonRotationAngle = Double.random(in: -3.0...3.0)
-            buttonTiltX = Double.random(in: -5.0...5.0)
-            buttonTiltY = Double.random(in: -5.0...5.0)
+        // Solid physical compression without accumulation
+        withAnimation(.easeOut(duration: 0.06)) {
+            isPressed = true
+            buttonRotationAngle = Double.random(in: -1.5...1.5)
+            buttonTiltX = Double.random(in: -2.0...2.0)
+            buttonTiltY = Double.random(in: -2.0...2.0)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.07) {
-            isPressed = false
-            withAnimation(.spring(response: 0.22, dampingFraction: 0.55)) {
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.6)) {
+                isPressed = false
                 buttonRotationAngle = 0
                 buttonTiltX = 0
                 buttonTiltY = 0
@@ -394,33 +396,33 @@ struct ClickerView: View {
     }
     
     private func spawnFloatingNumber(earned: Int, isFrenzy: Bool) {
-        let randomX = CGFloat.random(in: -70...70)
-        let initialOffset = CGSize(width: randomX, height: -20)
+        let randomX = CGFloat.random(in: -50...50)
+        let initialOffset = CGSize(width: randomX, height: -30)
         
         let text = isFrenzy ? "+\(earned) 🔥" : "+\(earned)"
         let newNumber = FloatingNumber(
             text: text,
             offset: initialOffset,
             opacity: 1.0,
-            scale: 0.5,
+            scale: 0.7,
             isFrenzy: isFrenzy
         )
         
-        // Cap max floating numbers to 5 to keep memory and CPU minimal
-        if floatingNumbers.count >= 5 {
+        // Cap max floating numbers to 6 to keep UI clean and memory minimal
+        if floatingNumbers.count >= 6 {
             floatingNumbers.removeFirst()
         }
         floatingNumbers.append(newNumber)
         
-        withAnimation(.easeOut(duration: 0.55)) {
+        withAnimation(.easeOut(duration: 0.5)) {
             if let index = floatingNumbers.firstIndex(where: { $0.id == newNumber.id }) {
-                floatingNumbers[index].offset = CGSize(width: randomX + CGFloat.random(in: -25...25), height: -160)
+                floatingNumbers[index].offset = CGSize(width: randomX, height: -120)
                 floatingNumbers[index].opacity = 0.0
-                floatingNumbers[index].scale = isFrenzy ? 1.35 : 1.2
+                floatingNumbers[index].scale = isFrenzy ? 1.25 : 1.1
             }
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.58) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.52) {
             floatingNumbers.removeAll(where: { $0.id == newNumber.id })
         }
     }
