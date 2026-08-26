@@ -73,18 +73,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.event_name != 'pull_request'
         with:
-          tag_name: "v1.0.${{ github.run_number }}"
-          name: "Release v1.0.0 (Build ${{ github.run_number }})"
+          tag_name: "v1.0.0"
+          name: "Release 1.0.0"
           body: |
-            🎉 **Официальный релиз MellClicker!**
+            Официальный релиз MellClicker!
             
             В этой версии:
             - Установлены новые иконки приложения и кнопки (Mellstroy)
-            - Звуки кликов и автокликера теперь работают правильно (даже в беззвучном режиме)
+            - Звуки кликов и автокликера теперь работают правильно (включая беззвучный режим)
             - Улучшен и обновлен игровой баланс
+            - Исправлен интерфейс магазина
             
-            📥 **Как установить:**
-            Скачайте прикрепленный файл `MellClicker.ipa` ниже и установите его на ваше iOS-устройство с помощью AltStore, Sideloadly, TrollStore или Scarlet.
+            Как установить:
+            Скачайте прикрепленный файл MellClicker.ipa ниже и установите его на ваше iOS-устройство с помощью AltStore, Sideloadly, TrollStore или Scarlet.
           files: build/MellClicker.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

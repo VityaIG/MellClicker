@@ -64,8 +64,10 @@ struct ShopView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "circle.circle.fill")
                                     .font(.caption2)
-                                Text("\(viewModel.chekushkaCost)")
+                                Text("\(viewModel.formattedChekushkaCost)")
                                     .font(.subheadline.weight(.bold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
@@ -112,8 +114,10 @@ struct ShopView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "circle.circle.fill")
                                     .font(.caption2)
-                                Text("\(viewModel.chekunecCost)")
+                                Text("\(viewModel.formattedChekunecCost)")
                                     .font(.subheadline.weight(.bold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)

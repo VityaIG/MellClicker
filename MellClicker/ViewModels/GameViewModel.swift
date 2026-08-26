@@ -70,6 +70,20 @@ final class GameViewModel: ObservableObject {
         return formatter.string(from: NSNumber(value: balance)) ?? "\(balance)"
     }
     
+    var formattedChekushkaCost: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        return formatter.string(from: NSNumber(value: chekushkaCost)) ?? "\(chekushkaCost)"
+    }
+    
+    var formattedChekunecCost: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        return formatter.string(from: NSNumber(value: chekunecCost)) ?? "\(chekunecCost)"
+    }
+    
     // MARK: - Private Constants & Timers
     
     private enum Keys {
