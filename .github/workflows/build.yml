@@ -26,6 +26,9 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Restore Pristine Images
+        run: bash restore_assets.sh
+
       - name: Build iOS App
         run: |
           xcodebuild clean build \
