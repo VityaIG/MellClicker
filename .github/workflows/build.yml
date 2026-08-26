@@ -33,58 +33,59 @@ jobs:
       - name: Restore Binary Images
         run: python3 restore_images.py
 
-      - name: Build iOS App Archive
+      - name: Build iOS Application
         run: |
-          xcodebuild clean archive \
+          # Собираем напрямую под arm64 iOS без принудительной блокировки подписи в Xcode
+          xcodebuild build \
             -project MellClicker.xcodeproj \
             -scheme MellClicker \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath build/MellClicker.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
+            CONFIGURATION_BUILD_DIR="$(pwd)/build/Release-iphoneos" \
             CODE_SIGN_IDENTITY="" \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            COMPILER_INDEX_STORE_ENABLE=NO > build.log 2>&1 || (echo "=== BUILD FAILED ===" && grep -A 5 -B 5 -i "error:" build.log && exit 1)
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO > build.log 2>&1 || (echo "=== BUILD FAILED ===" && grep -A 5 -B 5 -i "error:" build.log && cat build.log | tail -n 40 && exit 1)
 
-      - name: Package App into Sideload-Ready .ipa
+      - name: Package Clean Sideloadable IPA
         run: |
+          rm -rf build/Payload build/MellClicker.ipa
           mkdir -p build/Payload
-          APP_PATH=$(find build -name "MellClicker.app" -type d | head -n 1)
-          if [ -z "$APP_PATH" ]; then
+          
+          APP_PATH="build/Release-iphoneos/MellClicker.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Searching for MellClicker.app..."
+            APP_PATH=$(find build -name "MellClicker.app" -type d | head -n 1)
+          fi
+          
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
             echo "Error: MellClicker.app not found!"
             exit 1
           fi
           echo "Found app at: $APP_PATH"
           
-          # 1. Очистка системных мусорных файлов и расширенных атрибутов macOS (xattr)
+          # 1. Удаляем расширенные атрибуты Apple/macOS
           xattr -cr "$APP_PATH" || true
           find "$APP_PATH" -name ".DS_Store" -delete || true
           find "$APP_PATH" -name "._*" -delete || true
           
-          # 2. Копирование бандла приложения в Payload
-          cp -R "$APP_PATH" "build/Payload/MellClicker.app"
+          # 2. Удаляем существующие невалидные подписи или старые профили
+          rm -rf "$APP_PATH/_CodeSignature"
+          rm -f "$APP_PATH/embedded.mobileprovision"
           
-          # 3. Выставление корректных POSIX прав (исполняемый файл обязателен для подписи)
-          chmod +x "build/Payload/MellClicker.app/MellClicker" || true
+          # 3. Копируем в чистую структуру Payload/
+          cp -a "$APP_PATH" "build/Payload/MellClicker.app"
+          
+          # 4. Проверяем исполняемый файл
+          chmod +x "build/Payload/MellClicker.app/MellClicker"
           chmod -R 755 "build/Payload"
           
-          # 4. Удаление старых или поврежденных сигнатур и профилей
-          rm -rf "build/Payload/MellClicker.app/_CodeSignature"
-          rm -f "build/Payload/MellClicker.app/embedded.mobileprovision"
-          
-          # 5. Ad-Hoc подпись с поддержкой DER-энтайтлментов (требование iOS 15+)
-          codesign --force --deep --sign - --timestamp=none --generate-entitlement-der "build/Payload/MellClicker.app"
-          
-          # 6. Проверка валидности структуры подписи
-          codesign --verify --deep --verbose "build/Payload/MellClicker.app" || true
-          
+          # 5. Упаковка IPA (Payload/ на верхнем уровне архива без лишних путей)
           cd build
-          # 7. Упаковка в стандартизированный zip-архив .ipa
           zip -qry9 MellClicker.ipa Payload
-          echo "Successfully created MellClicker.ipa"
+          
+          echo "IPA packaging complete. Verifying archive structure:"
+          unzip -l MellClicker.ipa | head -n 25
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
