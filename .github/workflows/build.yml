@@ -58,9 +58,16 @@ jobs:
             exit 1
           fi
           echo "Found app at: $APP_PATH"
-          cp -R "$APP_PATH" build/Payload/
+          
+          # 1. Используем ditto для полного сохранения структуры и метаданных
+          ditto "$APP_PATH" "build/Payload/$(basename "$APP_PATH")"
+          
+          # 2. Добавляем Ad-Hoc подпись. Это решает проблему "не подписывается / broken IPA" для AltStore, Sideloadly и TrollStore
+          codesign -f -s - --deep "build/Payload/$(basename "$APP_PATH")"
+          
           cd build
-          zip -r MellClicker.ipa Payload
+          # 3. Сохраняем симлинки (-y) при создании архива
+          zip -qry MellClicker.ipa Payload
           echo "Successfully created MellClicker.ipa"
 
       - name: Upload IPA Artifact
