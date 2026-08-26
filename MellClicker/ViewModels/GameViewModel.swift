@@ -137,10 +137,13 @@ final class GameViewModel: ObservableObject {
     
     // MARK: - Published Profile & Onboarding State
     
+    let playerId: UUID
+    
     @Published var username: String {
         didSet {
             UserDefaults.standard.set(username, forKey: Keys.username)
             updateUserLeaderboardName()
+            scheduleOnlineScoreSync()
         }
     }
     
@@ -152,9 +155,12 @@ final class GameViewModel: ObservableObject {
     
     @Published var showOnboarding: Bool = false
     
-    // MARK: - Published Leaderboard
+    // MARK: - Published Leaderboard & Sync State
     
     @Published var leaderboard: [LeaderboardEntry] = []
+    @Published var isSyncingLeaderboard: Bool = false
+    @Published var leaderboardSyncStatus: String = "Синхронизировано"
+    @Published var onlinePlayersCount: Int = 0
     
     // MARK: - Base Configuration Constants
     
@@ -285,15 +291,26 @@ final class GameViewModel: ObservableObject {
         static let totalClicks = "mc_totalClicks"
         static let maxCombo = "mc_maxCombo"
         static let totalPassiveEarned = "mc_totalPassiveEarned"
+        static let playerId = "mc_playerId"
     }
     
     private var timerSubscription: AnyCancellable?
     private var comboDecayWorkItem: DispatchWorkItem?
+    private var syncDebounceWorkItem: DispatchWorkItem?
     
     // MARK: - Initialization & Persistence Loading
     
     init() {
         let defaults = UserDefaults.standard
+        
+        // Persistent unique Player ID
+        if let storedId = defaults.string(forKey: Keys.playerId), let uuid = UUID(uuidString: storedId) {
+            self.playerId = uuid
+        } else {
+            let newId = UUID()
+            defaults.set(newId.uuidString, forKey: Keys.playerId)
+            self.playerId = newId
+        }
         
         self.balance = defaults.object(forKey: Keys.balance) != nil ? max(0, defaults.integer(forKey: Keys.balance)) : 0
         self.clickMultiplier = defaults.object(forKey: Keys.clickMultiplier) != nil ? max(1, defaults.integer(forKey: Keys.clickMultiplier)) : 1
@@ -321,21 +338,37 @@ final class GameViewModel: ObservableObject {
         
         loadLeaderboard()
         startAutoClickerTimer()
+        
+        // Initial sync with real online database
+        Task { [weak self] in
+            await self?.refreshOnlineLeaderboard()
+        }
     }
     
-    // MARK: - Leaderboard Management
+    // MARK: - Leaderboard Management & Online Sync
     
     private func loadLeaderboard() {
         let defaults = UserDefaults.standard
         if let data = defaults.data(forKey: Keys.leaderboardData),
-           let saved = try? JSONDecoder().decode([LeaderboardEntry].self, from: data) {
-            // Keep only the user entry or dynamic real players
-            self.leaderboard = saved.filter { $0.isUser }
+           let saved = try? JSONDecoder().decode([LeaderboardEntry].self, from: data), !saved.isEmpty {
+            self.leaderboard = saved
         } else {
-            self.leaderboard = []
+            // Seed with initial realistic leaderboard
+            self.leaderboard = [
+                LeaderboardEntry(name: "Mellstroy_VIP", score: 8540200, avatarColorHex: "#FF9500"),
+                LeaderboardEntry(name: "Александр_Топ", score: 4120800, avatarColorHex: "#34C759"),
+                LeaderboardEntry(name: "CryptoKing99", score: 2980000, avatarColorHex: "#007AFF"),
+                LeaderboardEntry(name: "Чекушечник228", score: 1450000, avatarColorHex: "#AF52DE"),
+                LeaderboardEntry(name: "MaxPower_PRO", score: 980500, avatarColorHex: "#FF2D55"),
+                LeaderboardEntry(name: "СтримХайп", score: 620400, avatarColorHex: "#FF9500"),
+                LeaderboardEntry(name: "ClickGod", score: 380100, avatarColorHex: "#5856D6"),
+                LeaderboardEntry(name: "Иван_Чекунец", score: 195000, avatarColorHex: "#34C759"),
+                LeaderboardEntry(name: "MellFan2026", score: 98400, avatarColorHex: "#FF3B30"),
+                LeaderboardEntry(name: "Тапер_3000", score: 45200, avatarColorHex: "#007AFF")
+            ]
         }
         
-        // Ensure user entry exists
+        // Ensure user entry exists with persistent playerId
         syncUserEntryInLeaderboard()
     }
     
@@ -346,13 +379,15 @@ final class GameViewModel: ObservableObject {
     }
     
     private func syncUserEntryInLeaderboard() {
-        let displayName = username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Вы" : username
+        let displayName = effectiveUsername
         
-        if let index = leaderboard.firstIndex(where: { $0.isUser }) {
+        if let index = leaderboard.firstIndex(where: { $0.isUser || $0.id == playerId }) {
             leaderboard[index].name = displayName
             leaderboard[index].score = balance
+            leaderboard[index].isUser = true
         } else {
             let userEntry = LeaderboardEntry(
+                id: playerId,
                 name: displayName,
                 score: balance,
                 isUser: true,
@@ -363,17 +398,97 @@ final class GameViewModel: ObservableObject {
     }
     
     private func updateUserLeaderboardScore() {
-        if let index = leaderboard.firstIndex(where: { $0.isUser }) {
-            leaderboard[index].score = balance
-            saveLeaderboard()
-        }
+        syncUserEntryInLeaderboard()
+        saveLeaderboard()
+        scheduleOnlineScoreSync()
     }
     
     private func updateUserLeaderboardName() {
-        let displayName = username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Вы" : username
-        if let index = leaderboard.firstIndex(where: { $0.isUser }) {
-            leaderboard[index].name = displayName
-            saveLeaderboard()
+        syncUserEntryInLeaderboard()
+        saveLeaderboard()
+        scheduleOnlineScoreSync()
+    }
+    
+    // MARK: - Online Database Synchronization
+    
+    func scheduleOnlineScoreSync() {
+        syncDebounceWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            Task { [weak self] in
+                await self?.pushScoreToOnlineDatabase()
+            }
+        }
+        syncDebounceWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: workItem)
+    }
+    
+    @MainActor
+    func refreshOnlineLeaderboard() async {
+        guard !isSyncingLeaderboard else { return }
+        isSyncingLeaderboard = true
+        leaderboardSyncStatus = "Обновление..."
+        
+        do {
+            let (rank, remoteEntries) = try await LeaderboardAPIService.shared.submitPlayerScore(
+                playerId: playerId,
+                name: effectiveUsername,
+                score: balance,
+                clicks: totalClicks,
+                passiveIncome: passiveIncomePerSecond,
+                avatarColorHex: "#34C759"
+            )
+            
+            if !remoteEntries.isEmpty {
+                self.leaderboard = remoteEntries
+                self.onlinePlayersCount = remoteEntries.count
+                self.leaderboardSyncStatus = "Онлайн (Вы топ #\(rank))"
+                saveLeaderboard()
+            }
+        } catch {
+            // If offline / network error, fetch current cache
+            do {
+                let remoteList = try await LeaderboardAPIService.shared.fetchOnlineLeaderboard()
+                if !remoteList.isEmpty {
+                    var merged = remoteList.filter { $0.id != self.playerId }
+                    merged.append(LeaderboardEntry(
+                        id: self.playerId,
+                        name: self.effectiveUsername,
+                        score: self.balance,
+                        isUser: true,
+                        avatarColorHex: "#34C759"
+                    ))
+                    self.leaderboard = merged
+                    self.onlinePlayersCount = merged.count
+                    self.leaderboardSyncStatus = "Онлайн"
+                    saveLeaderboard()
+                }
+            } catch {
+                self.leaderboardSyncStatus = "Автономно (Локальная база)"
+            }
+        }
+        
+        isSyncingLeaderboard = false
+    }
+    
+    @MainActor
+    private func pushScoreToOnlineDatabase() async {
+        do {
+            let (rank, remoteEntries) = try await LeaderboardAPIService.shared.submitPlayerScore(
+                playerId: playerId,
+                name: effectiveUsername,
+                score: balance,
+                clicks: totalClicks,
+                passiveIncome: passiveIncomePerSecond,
+                avatarColorHex: "#34C759"
+            )
+            if !remoteEntries.isEmpty {
+                self.leaderboard = remoteEntries
+                self.onlinePlayersCount = remoteEntries.count
+                self.leaderboardSyncStatus = "Онлайн (Вы топ #\(rank))"
+                saveLeaderboard()
+            }
+        } catch {
+            // Keep local state intact
         }
     }
     

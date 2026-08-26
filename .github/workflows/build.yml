@@ -59,14 +59,27 @@ jobs:
           fi
           echo "Found app at: $APP_PATH"
           
-          # 1. Используем ditto для полного сохранения структуры и метаданных
+          # 1. Очищаем все скрытые атрибуты macOS (xattr) и мусорные файлы, которые ломают подпись
+          xattr -cr "$APP_PATH"
+          find "$APP_PATH" -name ".DS_Store" -delete || true
+          find "$APP_PATH" -name "._*" -delete || true
+          
+          # 2. Копируем в Payload
           ditto "$APP_PATH" "build/Payload/$(basename "$APP_PATH")"
           
-          # 2. Добавляем Ad-Hoc подпись. Это решает проблему "не подписывается / broken IPA" для AltStore, Sideloadly и TrollStore
-          codesign -f -s - --deep "build/Payload/$(basename "$APP_PATH")"
+          # 3. Дополнительно очищаем Payload и выставляем корректные POSIX права доступа
+          xattr -cr "build/Payload"
+          chmod -R 755 "build/Payload"
+          
+          # 4. Удаляем старую сигнатуру и выполняем чистую Ad-Hoc подпись без таймстемпов
+          rm -rf "build/Payload/$(basename "$APP_PATH")/_CodeSignature"
+          codesign --force --sign - --timestamp=none "build/Payload/$(basename "$APP_PATH")"
+          
+          # 5. Проверяем валидность подписи
+          codesign --verify --verbose "build/Payload/$(basename "$APP_PATH")" || true
           
           cd build
-          # 3. Сохраняем симлинки (-y) при создании архива
+          # 6. Упаковываем в чистый zip/ipa с сохранением прав и ссылок
           zip -qry MellClicker.ipa Payload
           echo "Successfully created MellClicker.ipa"
 

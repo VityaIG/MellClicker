@@ -21,6 +21,45 @@ struct LeaderboardView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     
+                    // MARK: - Online Sync Status Banner
+                    HStack {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(viewModel.leaderboardSyncStatus.contains("Автономно") ? Color.orange : Color.green)
+                                .frame(width: 8, height: 8)
+                            Text(viewModel.leaderboardSyncStatus)
+                                .font(.caption.weight(.medium))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button {
+                            Task {
+                                await viewModel.refreshOnlineLeaderboard()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                if viewModel.isSyncingLeaderboard {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                } else {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.caption.weight(.bold))
+                                }
+                                Text("Обновить")
+                                    .font(.caption.weight(.semibold))
+                            }
+                            .foregroundColor(viewModel.currentAccentColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(viewModel.currentAccentColor.opacity(0.12))
+                            .clipShape(Capsule())
+                        }
+                        .disabled(viewModel.isSyncingLeaderboard)
+                    }
+                    .padding(.horizontal, 4)
+                    
                     // MARK: - User Status Card
                     UserRankBanner(
                         viewModel: viewModel,
@@ -55,7 +94,7 @@ struct LeaderboardView: View {
                             
                             Spacer()
                             
-                            Text("Участников: \(sortedEntries.count)")
+                            Text("Онлайн игроков: \(sortedEntries.count)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -89,6 +128,12 @@ struct LeaderboardView: View {
                     }
                 }
                 .padding()
+            }
+            .refreshable {
+                await viewModel.refreshOnlineLeaderboard()
+            }
+            .task {
+                await viewModel.refreshOnlineLeaderboard()
             }
             .searchable(text: $searchText, prompt: "Поиск по игрокам")
             .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())

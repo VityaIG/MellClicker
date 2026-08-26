@@ -12,6 +12,7 @@
 		A10000032C70000100000001 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000032C70000100000001 /* GameViewModel.swift */; };
 		A10000042C70000100000001 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042C70000100000001 /* AudioManager.swift */; };
 		A10000052C70000100000001 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000052C70000100000001 /* HapticManager.swift */; };
+		A100000E2C70000100000001 /* LeaderboardAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000F2C70000100000001 /* LeaderboardAPIService.swift */; };
 		A10000062C70000100000001 /* ClickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000062C70000100000001 /* ClickerView.swift */; };
 		A10000072C70000100000001 /* ShopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000072C70000100000001 /* ShopView.swift */; };
 		A10000082C70000100000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000082C70000100000001 /* SettingsView.swift */; };
@@ -29,6 +30,7 @@
 		B10000032C70000100000001 /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewModel.swift; sourceTree = "<group>"; };
 		B10000042C70000100000001 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		B10000052C70000100000001 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		B100000F2C70000100000001 /* LeaderboardAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardAPIService.swift; sourceTree = "<group>"; };
 		B10000062C70000100000001 /* ClickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickerView.swift; sourceTree = "<group>"; };
 		B10000072C70000100000001 /* ShopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShopView.swift; sourceTree = "<group>"; };
 		B10000082C70000100000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 			children = (
 				B10000042C70000100000001 /* AudioManager.swift */,
 				B10000052C70000100000001 /* HapticManager.swift */,
+				B100000F2C70000100000001 /* LeaderboardAPIService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -212,6 +215,7 @@
 				A10000032C70000100000001 /* GameViewModel.swift in Sources */,
 				A10000042C70000100000001 /* AudioManager.swift in Sources */,
 				A10000052C70000100000001 /* HapticManager.swift in Sources */,
+				A100000E2C70000100000001 /* LeaderboardAPIService.swift in Sources */,
 				A10000062C70000100000001 /* ClickerView.swift in Sources */,
 				A10000072C70000100000001 /* ShopView.swift in Sources */,
 				A10000082C70000100000001 /* SettingsView.swift in Sources */,
@@ -368,9 +372,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_BITCODE = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MellClicker/Resources/Info.plist;
