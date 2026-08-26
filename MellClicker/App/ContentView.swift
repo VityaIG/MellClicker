@@ -25,7 +25,7 @@ struct ContentView: View {
                 .tabItem {
                     Label("Магазин", systemImage: "cart.fill")
                 }
-                .badge(viewModel.balance >= viewModel.chekushkaCost || viewModel.balance >= viewModel.chekunecCost ? "!" : nil)
+                .badge(viewModel.balance >= viewModel.chekushkaCost || viewModel.balance >= viewModel.chekunecCost ? Text("!") : nil)
                 .tag(TabItem.shop)
             
             // Tab 3: Настройки
