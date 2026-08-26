@@ -60,7 +60,7 @@ final class LeaderboardAPIService {
             throw URLError(.badServerResponse)
         }
         
-        let decoded = try JSONDecoder().decode(ServerLeaderboardResponse, from: data)
+        let decoded = try JSONDecoder().decode(ServerLeaderboardResponse.self, from: data)
         guard decoded.success else {
             throw URLError(.cannotParseResponse)
         }
@@ -113,7 +113,7 @@ final class LeaderboardAPIService {
             throw URLError(.badServerResponse)
         }
         
-        let decoded = try JSONDecoder().decode(ServerSubmitResponse, from: data)
+        let decoded = try JSONDecoder().decode(ServerSubmitResponse.self, from: data)
         guard decoded.success else {
             throw URLError(.cannotParseResponse)
         }
