@@ -51,6 +51,8 @@ export default function App() {
   const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
   const [isClicking, setIsClicking] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'game' | 'leaderboard'>('game');
+  const [floatingItems, setFloatingItems] = useState<{ id: number; text: string; x: number; y: number; isFrenzy: boolean }[]>([]);
+  const [buttonTilt, setButtonTilt] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Online Leaderboard State
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
@@ -95,7 +97,7 @@ export default function App() {
     if (combo <= 0) return;
     const timer = setTimeout(() => {
       setCombo(prev => Math.max(0, prev - 1));
-    }, 800);
+    }, 900);
     return () => clearTimeout(timer);
   }, [combo]);
 
@@ -135,7 +137,7 @@ export default function App() {
           score: balance,
           clicks: 1,
           passiveIncome: autoClickerCount,
-          avatarColorHex: '#34C759'
+          avatarColorHex: '#FF9500'
         })
       });
       if (res.ok) {
@@ -180,14 +182,44 @@ export default function App() {
   }, [balance, username]);
 
   const comboMultiplier = combo >= 50 ? 3.0 : combo >= 25 ? 2.0 : combo >= 10 ? 1.5 : 1.0;
+  const isFrenzy = combo >= 25;
   const effectivePower = Math.max(1, Math.round(clickMultiplier * comboMultiplier));
 
-  const handleTap = () => {
+  // Next milestone calculation
+  const nextTarget = combo < 10 ? 10 : combo < 25 ? 25 : combo < 50 ? 50 : 100;
+  const prevTarget = combo < 10 ? 0 : combo < 25 ? 10 : combo < 50 ? 25 : 50;
+  const progressPercent = Math.min(100, Math.max(5, ((combo - prevTarget) / (nextTarget - prevTarget)) * 100));
+
+  const handleTap = (e: React.MouseEvent<HTMLButtonElement>) => {
     setBalance(prev => prev + effectivePower);
     setCombo(prev => Math.min(100, prev + 1));
     setIsClicking(true);
     playWebSound('tap');
-    setTimeout(() => setIsClicking(false), 80);
+
+    // Button tilt calculation
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 15;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -15;
+    setButtonTilt({ x: y, y: x });
+
+    // Floating text particle
+    const newItem = {
+      id: Date.now() + Math.random(),
+      text: isFrenzy ? `+${effectivePower} 🔥` : `+${effectivePower}`,
+      x: (Math.random() - 0.5) * 60,
+      y: (Math.random() - 0.5) * 20,
+      isFrenzy
+    };
+    setFloatingItems(prev => [...prev.slice(-6), newItem]);
+
+    setTimeout(() => {
+      setIsClicking(false);
+      setButtonTilt({ x: 0, y: 0 });
+    }, 100);
+
+    setTimeout(() => {
+      setFloatingItems(prev => prev.filter(item => item.id !== newItem.id));
+    }, 600);
   };
 
   const buyChekushka = () => {
@@ -272,52 +304,118 @@ export default function App() {
       <section className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center backdrop-blur-sm">
         {activeTab === 'game' ? (
           <div className="w-full flex flex-col items-center">
-            {/* Balance & Power Display */}
-            <div className="w-full text-center mb-6">
-              <div className="text-xs font-bold tracking-wider text-slate-400 uppercase mb-1">Баланс монет</div>
-              <div className="text-4xl font-extrabold text-white tracking-tight flex items-center justify-center gap-2">
+            {/* Balance & Multipliers Display */}
+            <div className="w-full text-center mb-4">
+              <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase mb-1">Баланс монет</div>
+              <div className="text-4xl sm:text-5xl font-black text-white tracking-tight flex items-center justify-center gap-2">
                 <span>{balance.toLocaleString('ru-RU')}</span>
-                <span className="text-orange-400 text-2xl">🪙</span>
+                <span className="text-orange-400 text-3xl drop-shadow-md">🪙</span>
               </div>
-              <div className="flex items-center justify-center gap-4 mt-2 text-xs text-slate-400">
-                <span>Сила клика: <strong className="text-emerald-400">+{effectivePower}</strong></span>
-                <span>•</span>
-                <span>Доход: <strong className="text-orange-400">+{autoClickerCount}/сек</strong></span>
+              <div className="flex items-center justify-center gap-3 mt-2.5">
+                <div className="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-orange-400" />
+                  <span>+{effectivePower} / клик</span>
+                </div>
+                {autoClickerCount > 0 && (
+                  <div className="px-3 py-1 rounded-full bg-slate-800/80 border border-emerald-500/40 text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>+{autoClickerCount}/сек</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Combo Streak Indicator */}
-            {combo >= 10 && (
-              <div className="w-full mb-4 px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/40 flex items-center justify-between text-xs animate-pulse">
-                <div className="flex items-center gap-1.5 font-bold text-orange-400">
-                  <Flame className="w-4 h-4 text-orange-500" />
-                  {combo >= 50 ? '💥 FRENZY x3.0' : combo >= 25 ? '🔥 МЕГА x2.0' : '⚡️ КОМБО x1.5'}
+            {/* Dynamic Combo & Frenzy HUD Bar */}
+            {combo > 0 ? (
+              <div className="w-full mb-4 p-3 rounded-2xl bg-slate-950/70 border border-orange-500/40 shadow-lg shadow-orange-500/10 flex flex-col gap-2 transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-lg ${isFrenzy ? 'bg-red-500 text-white animate-bounce' : 'bg-orange-500/20 text-orange-400'}`}>
+                      <Flame className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-black text-white">
+                      {combo >= 50 ? '💥 FRENZY x3.0' : combo >= 25 ? '🔥 МЕГА x2.0' : combo >= 10 ? '⚡️ КОМБО x1.5' : `Комбо ${combo}x`}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-orange-400 font-mono">
+                    +{effectivePower} монет
+                  </span>
                 </div>
-                <div className="text-slate-300 font-mono">{combo} кликов подряд</div>
+
+                {/* Progress bar to next multiplier milestone */}
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      isFrenzy ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'
+                    }`}
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
               </div>
+            ) : (
+              <div className="h-4" />
             )}
 
-            {/* Central Clicker Button */}
-            <div className="my-4 flex items-center justify-center">
+            {/* Next-Gen Central Clicker Button */}
+            <div className="relative my-4 flex items-center justify-center select-none">
+              {/* Outer Pulsing Glow Aura */}
+              <div
+                className={`absolute w-60 h-60 rounded-full blur-2xl transition-all duration-500 pointer-events-none ${
+                  isFrenzy
+                    ? 'bg-orange-500/50 scale-125 animate-pulse'
+                    : isClicking
+                    ? 'bg-orange-500/40 scale-110'
+                    : 'bg-orange-500/25 scale-100'
+                }`}
+              />
+
+              {/* Auto-clicker passive shockwave */}
+              {autoClickerCount > 0 && (
+                <div className="absolute w-52 h-52 rounded-full border border-orange-400/40 animate-ping pointer-events-none opacity-40" />
+              )}
+
+              {/* Floating Numbers Layer */}
+              {floatingItems.map(item => (
+                <div
+                  key={item.id}
+                  className="absolute pointer-events-none z-30 font-black text-2xl tracking-wide drop-shadow-[0_2px_8px_rgba(249,115,22,0.8)] animate-out fade-out slide-out-to-top-16 duration-700"
+                  style={{
+                    color: item.isFrenzy ? '#FACC15' : '#FB923C',
+                    transform: `translate(${item.x}px, ${item.y - 60}px)`
+                  }}
+                >
+                  {item.text}
+                </div>
+              ))}
+
+              {/* The Core 3D Button */}
               <button
                 id="main-click-button"
                 onClick={handleTap}
-                className={`relative w-40 h-40 rounded-full border-4 border-orange-500/80 bg-gradient-to-b from-orange-500 to-amber-600 shadow-2xl shadow-orange-500/40 transition-transform active:scale-90 flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden ${
-                  isClicking ? 'scale-95' : 'hover:scale-105'
-                }`}
+                style={{
+                  transform: `perspective(600px) rotateX(${buttonTilt.x}deg) rotateY(${buttonTilt.y}deg) scale(${isClicking ? 0.92 : 1})`
+                }}
+                className="relative w-48 h-48 sm:w-52 sm:h-52 rounded-full p-2 bg-gradient-to-tr from-orange-600 via-amber-500 to-yellow-400 shadow-[0_12px_36px_rgba(249,115,22,0.45)] active:shadow-[0_4px_16px_rgba(249,115,22,0.3)] transition-all duration-75 cursor-pointer group"
               >
-                <div className="absolute inset-0 bg-white/10 rounded-full pointer-events-none" />
-                <span className="text-5xl drop-shadow-md">👑</span>
-                <span className="text-xs font-black tracking-wider text-white mt-1 uppercase">КЛИК</span>
+                {/* Inner Bezel and Artwork */}
+                <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white/40 bg-slate-950 flex items-center justify-center shadow-inner">
+                  <img
+                    src="/mellclickericon.png"
+                    alt="MellClicker"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                  {/* Top Specular Gloss Highlight */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/40 pointer-events-none" />
+                </div>
               </button>
             </div>
 
             {/* Shop Section */}
-            <div className="w-full mt-4 space-y-3">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider text-left">Магазин улучшений</div>
+            <div className="w-full mt-4 space-y-2.5">
+              <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest text-left">Магазин улучшений</div>
               
               {/* Chekushka Upgrade */}
-              <div className="w-full p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+              <div className="w-full p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between hover:border-slate-700 transition-colors">
                 <div>
                   <div className="text-sm font-bold text-white flex items-center gap-1.5">
                     <span>🍺</span> «Чекушка» (+1 к клику)
@@ -328,14 +426,14 @@ export default function App() {
                   id="buy-chekushka-button"
                   onClick={buyChekushka}
                   disabled={balance < chekushkaCost}
-                  className="py-2 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-orange-500 font-bold text-xs text-white transition-all cursor-pointer"
+                  className="py-2 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-orange-500 font-bold text-xs text-white transition-all cursor-pointer shadow-md shadow-orange-500/20"
                 >
                   {chekushkaCost.toLocaleString('ru-RU')} 🪙
                 </button>
               </div>
 
               {/* Chekunec Auto-Clicker Upgrade (Duplicates x2) */}
-              <div className="w-full p-3 rounded-2xl bg-slate-950/60 border border-orange-500/30 flex items-center justify-between">
+              <div className="w-full p-3 rounded-2xl bg-slate-950/60 border border-orange-500/30 flex items-center justify-between hover:border-orange-500/50 transition-colors">
                 <div>
                   <div className="text-sm font-bold text-white flex items-center gap-1.5">
                     <span>🍾</span> «Чекунец» (Удвоение x2)
@@ -348,7 +446,7 @@ export default function App() {
                   id="buy-chekunec-button"
                   onClick={buyChekunec}
                   disabled={balance < chekunecCost}
-                  className="py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-40 disabled:hover:from-emerald-500 font-bold text-xs text-white transition-all cursor-pointer"
+                  className="py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-40 disabled:hover:from-emerald-500 font-bold text-xs text-white transition-all cursor-pointer shadow-md shadow-emerald-500/20"
                 >
                   {chekunecCost.toLocaleString('ru-RU')} 🪙
                 </button>
