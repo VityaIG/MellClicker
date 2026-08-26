@@ -1,6 +1,7 @@
 import SwiftUI
+import UIKit
 
-/// Represents a single floating "+X" animated particle when tapping.
+/// Model representing an individual floating "+X" animated particle when tapping.
 struct FloatingNumber: Identifiable {
     let id = UUID()
     let text: String
@@ -44,7 +45,6 @@ struct ClickerView: View {
                             
                             Text(viewModel.formattedBalance)
                                 .font(.system(size: 42, weight: .heavy, design: .rounded))
-                                .contentTransition(.numericText())
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.6)
                         }

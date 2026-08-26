@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Settings View providing audio/haptic toggles, game progress reset, and developer attribution using native Form.
 struct SettingsView: View {

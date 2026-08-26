@@ -1,102 +1,98 @@
 import Foundation
-import Combine
 import SwiftUI
+import Combine
+import AudioToolbox
+import UIKit
 
-/// Main Game ViewModel managing game state, currency, upgrades, auto-click timers, and persistence.
-@MainActor
+/// Main Game ViewModel coordinating state, local persistence via UserDefaults,
+/// passive auto-click intervals, and audio/haptic events.
 final class GameViewModel: ObservableObject {
     
-    // MARK: - Published State
+    // MARK: - State Properties
     
-    /// Total balance (coins/points)
     @Published var balance: Int {
         didSet {
             UserDefaults.standard.set(balance, forKey: Keys.balance)
         }
     }
     
-    /// Current multiplier for manual taps (Upgraded via "Чекушка")
     @Published var clickMultiplier: Int {
         didSet {
             UserDefaults.standard.set(clickMultiplier, forKey: Keys.clickMultiplier)
         }
     }
     
-    /// Cost for the next "Чекушка" upgrade (Formula: cost * 2)
     @Published var chekushkaCost: Int {
         didSet {
             UserDefaults.standard.set(chekushkaCost, forKey: Keys.chekushkaCost)
         }
     }
     
-    /// Number of active "Чекунец" auto-clickers owned
     @Published var autoClickerCount: Int {
         didSet {
             UserDefaults.standard.set(autoClickerCount, forKey: Keys.autoClickerCount)
         }
     }
     
-    /// Cost for the next "Чекунец" auto-clicker
     @Published var chekunecCost: Int {
         didSet {
             UserDefaults.standard.set(chekunecCost, forKey: Keys.chekunecCost)
         }
     }
     
-    /// Sound FX toggle
     @Published var isSoundEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isSoundEnabled, forKey: Keys.isSoundEnabled)
         }
     }
     
-    /// Haptic feedback toggle
     @Published var isHapticsEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isHapticsEnabled, forKey: Keys.isHapticsEnabled)
         }
     }
     
-    // MARK: - Computed Properties
+    // MARK: - Base Configuration Constants
     
-    /// Passive income generated per second (each Chekunec provides 1 * clickMultiplier or fixed passive clicks)
+    let baseChekushkaCost: Int = 100
+    let baseChekunecCost: Int = 250
+    
+    // MARK: - Computed Helpers
+    
     var passiveIncomePerSecond: Int {
         return autoClickerCount * 1
     }
     
-    /// Formatted balance string with thousand separators
     var formattedBalance: String {
-        return NumberFormatter.localizedString(from: NSNumber(value: balance), number: .decimal)
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        return formatter.string(from: NSNumber(value: balance)) ?? "\(balance)"
     }
     
-    // MARK: - Private Properties
-    
-    private var timerSubscription: AnyCancellable?
-    private let baseChekushkaCost = 100
-    private let baseChekunecCost = 250
-    
-    // MARK: - Storage Keys
+    // MARK: - Private Constants & Timers
     
     private enum Keys {
-        static let balance = "MellClicker_balance"
-        static let clickMultiplier = "MellClicker_clickMultiplier"
-        static let chekushkaCost = "MellClicker_chekushkaCost"
-        static let autoClickerCount = "MellClicker_autoClickerCount"
-        static let chekunecCost = "MellClicker_chekunecCost"
-        static let isSoundEnabled = "MellClicker_isSoundEnabled"
-        static let isHapticsEnabled = "MellClicker_isHapticsEnabled"
+        static let balance = "mc_balance"
+        static let clickMultiplier = "mc_clickMultiplier"
+        static let chekushkaCost = "mc_chekushkaCost"
+        static let autoClickerCount = "mc_autoClickerCount"
+        static let chekunecCost = "mc_chekunecCost"
+        static let isSoundEnabled = "mc_isSoundEnabled"
+        static let isHapticsEnabled = "mc_isHapticsEnabled"
     }
     
-    // MARK: - Initialization
+    private var timerSubscription: AnyCancellable?
+    
+    // MARK: - Initialization & Persistence Loading
     
     init() {
         let defaults = UserDefaults.standard
         
-        // Load stored state or set initial defaults
-        self.balance = defaults.object(forKey: Keys.balance) != nil ? defaults.integer(forKey: Keys.balance) : 0
+        self.balance = defaults.object(forKey: Keys.balance) != nil ? max(0, defaults.integer(forKey: Keys.balance)) : 0
         self.clickMultiplier = defaults.object(forKey: Keys.clickMultiplier) != nil ? max(1, defaults.integer(forKey: Keys.clickMultiplier)) : 1
         self.chekushkaCost = defaults.object(forKey: Keys.chekushkaCost) != nil ? max(100, defaults.integer(forKey: Keys.chekushkaCost)) : 100
-        self.autoClickerCount = defaults.object(forKey: Keys.autoClickerCount) != nil ? defaults.integer(forKey: Keys.autoClickerCount) : 0
+        self.autoClickerCount = defaults.object(forKey: Keys.autoClickerCount) != nil ? max(0, defaults.integer(forKey: Keys.autoClickerCount)) : 0
         self.chekunecCost = defaults.object(forKey: Keys.chekunecCost) != nil ? max(250, defaults.integer(forKey: Keys.chekunecCost)) : 250
         
         self.isSoundEnabled = defaults.object(forKey: Keys.isSoundEnabled) != nil ? defaults.bool(forKey: Keys.isSoundEnabled) : true
@@ -169,7 +165,7 @@ final class GameViewModel: ObservableObject {
         
         balance -= chekunecCost
         autoClickerCount += 1
-        // Progressive scaling formula: base * 1.25^count or standard arithmetic scale
+        // Progressive scaling formula: base * 1.20^count
         chekunecCost = Int(Double(baseChekunecCost) * pow(1.20, Double(autoClickerCount)))
         
         if isHapticsEnabled { HapticManager.shared.purchaseSuccess() }

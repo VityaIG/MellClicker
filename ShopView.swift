@@ -1,49 +1,38 @@
 import SwiftUI
+import UIKit
 
-/// Shop View providing upgrades ("Чекушка" and "Чекунец") using native iOS List and Section components.
+/// Shop View managing purchases for "Чекушка" (multiplier x2) and "Чекунец" (passive +1/s auto-clicker).
 struct ShopView: View {
     @ObservedObject var viewModel: GameViewModel
     
     var body: some View {
         NavigationStack {
             List {
-                // MARK: - Current Balance Header
+                // MARK: - Баланс
                 Section {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Доступный баланс")
+                            Text("Текущий баланс")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 6) {
                                 Image(systemName: "circle.circle.fill")
                                     .foregroundColor(.orange)
+                                    .font(.title3)
+                                
                                 Text(viewModel.formattedBalance)
                                     .font(.title2.weight(.bold))
-                                    .contentTransition(.numericText())
                             }
                         }
                         
                         Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Пассивный доход")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Text("+\(viewModel.passiveIncomePerSecond) / сек")
-                                .font(.headline.weight(.semibold))
-                                .foregroundColor(.orange)
-                        }
                     }
                     .padding(.vertical, 4)
                 }
                 
-                // MARK: - Manual Click Upgrade: Чекушка
-                Section(
-                    header: Text("Улучшения клика"),
-                    footer: Text("Каждая «Чекушка» удваивает количество очков, получаемых за одно нажатие.")
-                ) {
+                // MARK: - Товар 1: Чекушка
+                Section(header: Text("Улучшение клика"), footer: Text("Каждая покупка удваивает силу каждого вашего нажатия.")) {
                     HStack(spacing: 16) {
                         // Icon
                         ZStack {
@@ -51,17 +40,17 @@ struct ShopView: View {
                                 .fill(Color.orange.opacity(0.15))
                                 .frame(width: 48, height: 48)
                             
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 24))
+                            Image(systemName: "hand.tap.fill")
+                                .font(.system(size: 22))
                                 .foregroundColor(.orange)
                         }
                         
-                        // Description
+                        // Title & Info
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Чекушка")
                                 .font(.headline)
                             
-                            Text("Множитель: x\(viewModel.clickMultiplier) → x\(viewModel.clickMultiplier * 2)")
+                            Text("Текущий множитель: x\(viewModel.clickMultiplier) (станет x\(viewModel.clickMultiplier * 2))")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -90,11 +79,8 @@ struct ShopView: View {
                     .padding(.vertical, 6)
                 }
                 
-                // MARK: - Auto-Clicker Upgrade: Чекунец
-                Section(
-                    header: Text("Автоматизация"),
-                    footer: Text("«Чекунец» автоматически приносит очки каждую секунду и воспроизводит фирменный звук.")
-                ) {
+                // MARK: - Товар 2: Чекунец
+                Section(header: Text("Автокликер (Пассивный доход)"), footer: Text("Каждый купленный Чекунец автоматически приносит +1 к балансу каждую секунду.")) {
                     HStack(spacing: 16) {
                         // Icon
                         ZStack {
@@ -102,12 +88,12 @@ struct ShopView: View {
                                 .fill(Color.blue.opacity(0.15))
                                 .frame(width: 48, height: 48)
                             
-                            Image(systemName: "bolt.badge.clock.fill")
+                            Image(systemName: "bolt.fill")
                                 .font(.system(size: 22))
                                 .foregroundColor(.blue)
                         }
                         
-                        // Description
+                        // Title & Info
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Чекунец")
                                 .font(.headline)

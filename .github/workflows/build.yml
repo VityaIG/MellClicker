@@ -28,6 +28,7 @@ jobs:
 
       - name: Build iOS App
         run: |
+          set -o pipefail
           xcodebuild clean build \
             -project MellClicker.xcodeproj \
             -scheme MellClicker \
