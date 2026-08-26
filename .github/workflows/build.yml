@@ -31,7 +31,7 @@ jobs:
           xcodebuild -version
 
       - name: Restore Binary Images
-        run: bash restore_images.sh
+        run: python3 restore_images.py
 
       - name: Build iOS App
         run: |
